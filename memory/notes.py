@@ -22,7 +22,7 @@ import sys
 import unicodedata
 from datetime import datetime
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 SCHEMA_SQL = os.path.join(HERE, "schema.sql")
@@ -182,7 +182,7 @@ def missing_problem_sections(content: str) -> list[str]:
 # Colunas de uma nota, na ordem em que as linhas sao selecionadas e impressas.
 NOTE_FIELDS = (
     "id", "timestamp", "category", "tags", "title", "content",
-    "author", "verified_at", "disputed_at", "retracted_at", "status_reason",
+    "author", "verified_at", "disputed_at", "retracted_at", "status_reason", "pinned",
 )
 
 
@@ -528,12 +528,45 @@ def _print_rows(header: str, rows: list) -> None:
             flags.append(f"⚠ disputed {disputed_at}" + (f": {status_reason}" if status_reason else ""))
         if verified_at:
             flags.append(f"✔ verified {verified_at}")
+        if r.get("pinned"):
+            flags.append("📌 pinned")
         if flags:
             print("   " + " · ".join(flags))
         if tags:
             print(f"Tags: {tags}")
         print(f"Conteúdo:\n{content}\n" + "-" * 50)
 
+
+def pin_note(note_id: int) -> int:
+    """Fixa a nota: ela passara a aparecer no <memory-context> de toda sessao."""
+    init_db()
+    conn = _connect()
+    try:
+        if _load_note(conn, note_id) is None:
+            print(f"❌ Nota {note_id} não encontrada.")
+            return 1
+        conn.execute("UPDATE notes SET pinned = 1 WHERE id = ? AND pinned = 0", (note_id,))
+        conn.commit()
+        print(f"📌 Nota {note_id} fixada.")
+        return 0
+    finally:
+        conn.close()
+
+
+def unpin_note(note_id: int) -> int:
+    """Desfixa a nota: para de aparecer no <memory-context> (permanece buscavel)."""
+    init_db()
+    conn = _connect()
+    try:
+        if _load_note(conn, note_id) is None:
+            print(f"❌ Nota {note_id} não encontrada.")
+            return 1
+        conn.execute("UPDATE notes SET pinned = 0 WHERE id = ? AND pinned = 1", (note_id,))
+        conn.commit()
+        print(f"📎 Nota {note_id} desfixada.")
+        return 0
+    finally:
+        conn.close()
 
 def print_search(query: str, limit: int | None = None, all: bool = False) -> None:
     rows = search_notes(query, limit, all)
@@ -1122,6 +1155,26 @@ def main(argv: list[str]) -> int:
         args = [a for a in argv[2:] if a != "--all"]
         limit = int(args[0]) if args and args[0].isdigit() else DEFAULT_LIST_LIMIT
         print_list(limit, all_flag)
+    elif cmd == "pin":
+        if len(argv) < 3:
+            print(f'Erro: "pin" requer o id da nota.')
+            return 1
+        try:
+            note_id = int(argv[2])
+        except ValueError:
+            print(f'Erro: id inválido: {argv[2]!r}')
+            return 1
+        return pin_note(note_id)
+    elif cmd == "unpin":
+        if len(argv) < 3:
+            print(f'Erro: "unpin" requer o id da nota.')
+            return 1
+        try:
+            note_id = int(argv[2])
+        except ValueError:
+            print(f'Erro: id inválido: {argv[2]!r}')
+            return 1
+        return unpin_note(note_id)
     elif cmd == "init":
         init_db()
         status = "com FTS5" if fts_supported() else "sem FTS5 (busca LIKE)"
