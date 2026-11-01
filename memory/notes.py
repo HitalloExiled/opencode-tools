@@ -205,7 +205,8 @@ def _snapshot_revision(conn: sqlite3.Connection, note_id: int, revised_at: str, 
     o snapshot — a revisão é o que a nota ERA.
     """
     (_, timestamp, category, tags, title, content,
-     _author, verified_at, disputed_at, retracted_at, status_reason) = note_row
+     _author, verified_at, disputed_at, retracted_at, status_reason,
+     _pinned) = note_row
     # author is immutable (set at creation), so it is not part of the
     # revision snapshot — the current value always equals the historical one.
     cur = conn.execute(
@@ -518,7 +519,8 @@ def _print_rows(header: str, rows: list) -> None:
     print(header + "\n" + "=" * 50)
     for r in rows:
         (note_id, timestamp, category, tags, title, content,
-         author, verified_at, disputed_at, retracted_at, status_reason) = r
+         author, verified_at, disputed_at, retracted_at, status_reason,
+         pinned) = r
         by = f" (by {author})" if author else ""
         print(f"#{note_id} [{timestamp}] ({category}) **{title}**{by}")
         flags = []
@@ -528,7 +530,7 @@ def _print_rows(header: str, rows: list) -> None:
             flags.append(f"⚠ disputed {disputed_at}" + (f": {status_reason}" if status_reason else ""))
         if verified_at:
             flags.append(f"✔ verified {verified_at}")
-        if r.get("pinned"):
+        if pinned:
             flags.append("📌 pinned")
         if flags:
             print("   " + " · ".join(flags))
