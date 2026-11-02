@@ -5,9 +5,10 @@ OpenCode.
 
 Três subsistemas:
 
-- **`notes`** — memória de longa duração (SQLite + FTS5 opcional), exposta como
-  CLI global `notes` e como plugin `plugins/notes` (tools `notes.*` no Code
-  Mode; nomes efetivos `notes_*` em sessões regulares).
+- **`notes`** — memória de longa duração (SQLite + FTS5 opcional), exposta
+  pelo plugin `plugins/notes` (tools `notes.*` no Code Mode; nomes efetivos
+  `notes_*` em sessões regulares) e por um painel lateral no app desktop.
+  Não há CLI externa: tools e painel leem/gravam o SQLite diretamente.
 - **`sandbox`** — delegação de trabalho com risco para um container Docker
   descartável, via as tools `sandbox_*` e o CLI `opencode-sb`.
 - **`memory` (plugin)** — captura resumos de compactação, injeta o
@@ -23,16 +24,11 @@ reescrever o `setup.sh`.
 ```
 opencode-tools/
 ├── setup.sh            # links + banco + sandbox (daemon, guard, imagens, smoke)
-├── memory/
-│   ├── notes.py        # o CLI (stdlib puro: sqlite3); é o alvo de ~/.local/bin/notes
-│   ├── schema.sql      # schema base (v1), idempotente
-│   ├── schema_fts.sql  # camada FTS5 (opcional)
-│   └── migrations/     # NNN_*.sql para v2+
 ├── tools/
 │   └── sandbox.ts
 ├── plugins/
 │   ├── memory/          # plugin OpenCode V2 (SUBMODULE → opencode-memory): resumos, injeção, busca
-│   └── notes/           # plugin OpenCode V2 + skill notes (SUBMODULE → opencode-notes): tools notes.* sobre o CLI `notes`
+│   └── notes/           # plugin OpenCode V2 + skill + painel desktop (SUBMODULE → opencode-notes): tools notes.* direto no SQLite
 ├── sandbox/
 │   ├── setup.sh        # expõe opencode-sb/opencode-sandboxed no PATH
 │   ├── run.sh          # orquestrador (task/steer/watch/peek/status/up/down/…)
@@ -75,12 +71,12 @@ O que o `setup.sh` faz, em ordem:
 | Passo | Efeito |
 |---|---|
 | plugin (`@opencode-ai/plugin`) | garante a dependência npm resolvível a partir do repo (npm, ou symlink do config do OpenCode) — usada pela tool legada `sandbox_*` |
-| memória | symlink `~/.local/bin/notes` → `memory/notes.py`; migra o banco legado, se existir |
+| memória | migra o banco legado, se existir; remove o symlink antigo do CLI `notes` |
 | skills | symlink `skills/<id>/SKILL.md` → `~/.config/opencode/skills/<id>/SKILL.md` (o skill `notes` vem do submodule `plugins/notes/skills/notes` e é linkado na etapa de plugins) |
 | tools | symlink `tools/*.ts` → `~/.config/opencode/tools/` |
 | plugins `memory` + `notes` | garante os submodules `plugins/memory` e `plugins/notes` inicializados (clones de `opencode-memory` e `opencode-notes`) + symlinks → `~/.config/opencode/plugins/{memory,notes}` + `npm install` dentro de cada plugin com `package.json`; remove o link legado `tools/notes.ts` (as tools `notes_*` viraram o plugin `notes`) |
 | sandbox | daemon docker → CLI `opencode-sb` → guard de firewall → imagens/rede → self-test → tarefa de fumaça |
-| verificação | `notes init`, `notes doctor`, estado do sandbox, PATH |
+| verificação | `node:sqlite` (FTS5) no runtime, presença do banco, estado do sandbox, PATH |
 
 É **idempotente**: rodar de novo só confere e repete o smoke. A primeira execução
 pede `sudo` uma vez (subir o daemon e instalar o guard). Sem terminal/sudo, use
@@ -92,8 +88,8 @@ Arquivos reais que estejam no caminho são **movidos para backup**
 
 ## Máquina zerada: o que é criado, quando
 
-O banco e o schema são criados sob demanda: toda invocação do CLI roda
-`init_db()` antes de tocar nos dados.
+O banco e o schema são criados sob demanda: o plugin aplica DDL + migrações
+idempotentes (`PRAGMA user_version`) na primeira abertura.
 
 ```
 $XDG_DATA_HOME/opencode/memory/notes.db     # banco (estado; nunca versionado)
@@ -101,21 +97,19 @@ $XDG_DATA_HOME/opencode/memory/notes.db     # banco (estado; nunca versionado)
 
 | Objeto | Origem |
 |---|---|
-| banco | `init_db()` |
-| `notes` + índices | `schema.sql` |
-| `notes_fts` + shadow tables + triggers | `schema_fts.sql` (só se houver FTS5) |
-| `note_revisions` e migrações `≥ 2` | `migrations/NNN_*.sql` por `user_version` |
+| banco | `src/store.ts` (`initSchema`) |
+| `notes` + índices | DDL embutido em `src/store.ts` |
+| `notes_fts` + shadow tables + triggers | DDL embutido (só se houver FTS5) |
+| `note_revisions` e migrações `≥ 2` | DDL embutido por `user_version` |
 | imagens, rede e relay do sandbox | `sandbox/run.sh up` |
 | unit do firewall | `sandbox/host-firewall.sh install-unit` |
 
-**Degradação:** sem FTS5, o CLI avisa e a busca cai para `LIKE`. `notes doctor`
-reporta isso.
+**Degradação:** sem FTS5, a busca cai para `LIKE`. `notes.doctor` reporta isso.
 
 ### Backup
 
 ```bash
-notes export ~/notes-backup.json   # ou '-' para stdout
-notes import ~/notes-backup.json   # append, ignorando duplicadas
+cp ~/.local/share/opencode/memory/notes.db ~/notes-backup.db   # app fechado
 ```
 
 ## Camadas de memória
@@ -125,7 +119,7 @@ O repositório expõe duas camadas complementares, **isoladas por design**
 
 | Camada | Papel | Onde vive |
 |---|---|---|
-| **notes** (CLI + plugin `notes.*`) | conhecimento **curado e portável**: fatos, decisões, problemas resolvidos, configs — com ciclo de confiança e histórico de versões; **via entre máquinas** (export/import) | `memory/notes.py` + `notes.db` + `plugins/notes/` |
+| **notes** (plugin `notes.*` + painel) | conhecimento **curado e portátil**: fatos, decisões, problemas resolvidos, configs — com ciclo de confiança e histórico de versões; **via entre máquinas** (arquivo SQLite) | `notes.db` + `plugins/notes/` |
 | **memory** (plugin) | **retrieval local** de conversas e compactações: índice derivado (FTS5 + busca semântica local), injeção de contexto e handoff; descartável e por projeto | `plugins/memory/` + `index.db`/`compactions/` |
 | **memória persistente** (camada do plugin memory) | fatos duráveis do **mundo/usuário** que continuam verdadeiros após a sessão: quem é o usuário, preferências, trabalho em curso, fatos da máquina — injetada **no início de toda sessão** (com quota), escrita explícita do agente (`memory.profile`) ou do usuário (`/remember`/`/forget`); por máquina, sem portabilidade | `plugins/memory/` + `profile.json` |
 
@@ -135,7 +129,7 @@ como esta máquina se comporta / no que estamos trabalhando?" → memória
 persistente (injetada, um `memory.profile get` de distância). O que precisa
 valer em outra máquina precisa ser nota.
 
-## CLI e tools
+## Tools
 
 O contrato completo de cada subsistema está nas skills (`plugins/notes/skills/notes`
 e `skills/sandbox`, expostas via symlinks em `~/.config/opencode/skills/`);
@@ -143,9 +137,8 @@ aqui vai só o mapa.
 
 | Origem | O que oferece |
 |---|---|
-| `notes add/update/confirm/dispute/retract/history/restore/view/search/list/doctor` | memória (detalhes no skill `notes`, `plugins/notes/skills/notes/SKILL.md`) |
+| `notes.*` (plugin; `notes_*` em sessões regulares) | memória: `add`, `update`, `confirm`, `dispute`, `retract`, `history`, `restore`, `view`, `pin`, `unpin`, `search`, `doctor` — leitura/escrita direta no SQLite; `notes.add` **recusa** `#problem` sem Sintoma/Causa/Solução e aceita `author` (exibido como `(by <author>)`) |
 | `opencode-sb task/steer/peek/logs/status/…` | sandbox (detalhes em `skills/sandbox/SKILL.md`) |
-| `notes.*` (plugin; `notes_*` em sessões regulares) | tools tipadas sobre o CLI; `notes.add` **recusa** `#problem` sem Sintoma/Causa/Solução e aceita `author` (quem registrou a nota, exibido como `(by <author>)`) |
 | `sandbox_run/steer/peek/logs/status` | tools tipadas sobre o CLI; execução por `argv`, sem shell |
 
 O canal de retorno do sandbox é a **resposta final** (texto). `/workspace/out` é
@@ -230,7 +223,7 @@ ambientes onde a raiz XDG é read-only, os caminhos antigos
 (`$XDG_DATA_HOME/agent-toolbelt` e `$XDG_DATA_HOME/opencode/agent-toolbelt`)
 não aceitam escrita. Dados criados antes do renome são migrados uma única vez
 pelo plugin ao iniciar (rename, ou cópia quando o diretório antigo é somente
-leitura). O diretório é compartilhado com o banco do CLI `notes`
+leitura). O diretório é compartilhado com o banco do plugin `notes`
 (`notes.db`) — tudo que é memória durável do agente mora aqui.
 
 `projectID` é o identificador de projeto do próprio OpenCode
@@ -281,9 +274,8 @@ indicando a camada que o achou: `fts` (só palavras-chave), `vec`
 (força reindex do projeto), `/index-all` (indexa todos os projetos;
 `/index-all rebuild` para rebuild completo), `/repo` (mostra só o estado do
 git) e `/recall <algo>` (busca forçada nas superfícies de memória: notas via
-CLI `notes`, se existir na máquina, + índice de conversas; cada hit com sua
-fonte — nota #N ou sessão + timestamp). Cada um é um atalho que chama as
-tools acima.
+tools `notes.*` + índice de conversas; cada hit com sua fonte — nota #N ou
+sessão + timestamp). Cada um é um atalho que chama as tools acima.
 
 **Memória persistente** (escrita explícita do usuário): `/remember <fato>`
 persiste o fato verbatim (scope opcional `machine:`, `project:` ou
@@ -311,7 +303,7 @@ para escolher).
 Tudo fica fora do repo, em `$XDG_DATA_HOME/opencode/memory/`
 (permissões `0700`/`0600`). `./setup.sh --remove` remove só o symlink do
 plugin — nunca apaga resumos nem o índice. Para apagar os dados **do plugin**
-de fato (o `notes.db` é do CLI `notes` e fica fora desta limpeza):
+de fato (o `notes.db` é do plugin `notes` e fica fora desta limpeza):
 
 ```bash
 rm -rf "${XDG_DATA_HOME:-$HOME/.local/share}/opencode/memory/compactions" \
@@ -328,7 +320,7 @@ submodule `plugins/memory` é parte do opencode-tools e permanece (use
 
 Plugin (`plugins/notes/`, id `notes`; vendored como **git submodule** do repo
 [opencode-notes](https://github.com/HitalloExiled/opencode-notes)) que expõe
-as operações do CLI `notes` como tools tipadas no namespace `notes`,
+as operações de memória como tools tipadas no namespace `notes`,
 no mesmo padrão do plugin `memory` (`memory.*` / `notes.*`). O repo
 `opencode-notes` também traz o **skill `notes`** (`skills/notes/SKILL.md` —
 o contrato de uso da camada para os agentes), exposto por este repo via
@@ -336,8 +328,8 @@ symlink `~/.config/opencode/skills/notes/SKILL.md` (feito pelo `setup.sh` na
 etapa de plugins):
 
 - **Code Mode:** `tools.notes.add`, `tools.notes.search`, `tools.notes.confirm`,
-  ... (10 tools) — o agente enxerga o grupo `notes` no catálogo e chama
-  direto, sem sondar nomes nem cair no CLI.
+  ... (12 tools) — o agente enxerga o grupo `notes` no catálogo e chama
+  direto, sem sondar nomes.
 - **Sessões regulares:** nomes efetivos `notes_add`, `notes_search`, ...
   (mesmos de antes do refactor) — as regras de permissão existentes
   (`resource: "notes_add"` etc. no `opencode.jsonc`) continuam valendo.
@@ -348,15 +340,17 @@ Mecânica: `Plugin.define` + `ctx.tool.transform` com `editor.namespace({name:
 Code Mode). Os schemas de entrada são zod (o `input` do SDK aceita
 StandardSchemaV1); cada tool retorna `{content, metadata}`.
 
-As tools são um wrapper fino sobre o CLI `notes` (`memory/notes.py`):
-execução por `argv` (sem shell — o conteúdo da nota nunca é interpretado),
-validação do formato `#problem` (Sintoma/Causa/Solução obrigatórios) e nenhum
-comando destrutivo — `retract` esconde, `restore` recupera versões; nada é
-apagado.
+As tools e o painel lateral são wrappers finos sobre `plugins/notes/src/store.ts`,
+a única camada de dados: schema/FTS5/migrações embutidos, validação do formato
+`#problem` (Sintoma/Causa/Solução obrigatórios) e nenhum comando destrutivo —
+`retract` esconde, `restore` recupera versões; nada é apagado. O acesso ao
+SQLite é feito in-process com o `node:sqlite` embutido (síncrono, FTS5), o
+mesmo backend no processo Bun das tools e no processo principal do Electron;
+não há CLI, subprocesso nem addon nativo.
 
 Isolamento por camadas: o plugin `notes` não conhece a camada `memory` (e
-vice-versa); o `/recall` do `memory` menciona o CLI `notes` apenas de forma
-condicional ("se existir na máquina"), mantendo cada plugin standalone.
+vice-versa); o `/recall` do `memory` orienta o agente a usar as tools
+`notes.*`, mantendo cada plugin standalone.
 
 ## Desenvolvimento
 
@@ -375,11 +369,12 @@ opencode-tools via `git submodule update` (commit do submodule atualizado no
 repo pai). O `setup.sh` roda `npm install` dentro de cada plugin com
 `package.json`, então o clone fresco fica pronto sem passo manual.
 
-Smoke do CLI sem configurar a máquina:
+Smoke do store de notas sem tocar no banco real:
 
 ```bash
-NOTES_DB=/tmp/notes-test.db python3 memory/notes.py doctor
-NOTES_DB=/tmp/notes-test.db python3 memory/notes.py add "#general" "t" "tag" "conteudo"
+cd plugins/notes
+cp ~/.local/share/opencode/memory/notes.db /tmp/notes-test.db
+NOTES_DB=/tmp/notes-test.db bun -e 'import("./notes.ts").then(async (m) => console.log((await m.doctor.execute({})).content))'
 ```
 
 Teste do `setup.sh` sem tocar na máquina:

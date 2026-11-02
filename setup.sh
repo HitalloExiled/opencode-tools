@@ -128,15 +128,20 @@ ensure_notes_plugin() {
 
 install_plugin_deps() {
   # A fresh clone (git submodule) arrives without node_modules: install the
-  # npm deps inside every plugin that declares its own package.json.
+  # npm deps inside every plugin that declares its own package.json. A newer
+  # package-lock.json means a dependency was added since the last install.
   local d
   for d in "$ROOT"/plugins/*/; do
     [ -f "$d/package.json" ] || continue
-    if [ -d "$d/node_modules" ]; then
+    if [ -d "$d/node_modules" ] && [ -f "$d/node_modules/.package-lock.json" ] \
+       && [ ! "$d/package-lock.json" -nt "$d/node_modules/.package-lock.json" ]; then
       say "  deps   : $(basename "$d") ja presente em node_modules/"
       continue
     fi
-    if command -v npm >/dev/null 2>&1 && (cd "$d" && npm install --no-audit --no-fund --silent) >/dev/null 2>&1; then
+    # --legacy-peer-deps: @opencode/plugin declares an optional vite >= 6 peer
+    # while the plugins build against vite 5.
+    if command -v npm >/dev/null 2>&1 \
+       && (cd "$d" && npm install --legacy-peer-deps --no-audit --no-fund --silent) >/dev/null 2>&1; then
       say "  deps   : $(basename "$d") instalado via npm"
     else
       warn "deps   : nao consegui instalar em $(basename "$d") (npm ausente/offline?) — o plugin pode nao carregar"
@@ -170,6 +175,17 @@ cleanup_legacy_bin() {
   done
 }
 
+# The Python CLI is retired: the notes plugin (GUI + notes.* tools) talks to
+# SQLite directly. Remove only our old symlink, never a real file.
+cleanup_notes_cli() {
+  local legacy="$BIN_DIR/notes"
+  [ -e "$legacy" ] || [ -L "$legacy" ] || return 0
+  case "$(readlink "$legacy" 2>/dev/null || true)" in
+    "$ROOT"/*)
+      rm -f "$legacy" 2>/dev/null && say "  legado: removido $legacy (CLI notes aposentado)" || true ;;
+  esac
+}
+
 cleanup_legacy_skill() {
   local legacy="$CONFIG_DIR/skills/notebook"
   [ -d "$legacy" ] || return 0
@@ -182,15 +198,27 @@ cleanup_legacy_skill() {
   say "  legado: skill 'notebook' aposentada (-> 'notes')"
 }
 
-check_fts5() {
-  python3 - <<'PY' 2>/dev/null
-import sqlite3, sys
-try:
-    c = sqlite3.connect(":memory:")
-    c.execute("CREATE VIRTUAL TABLE t USING fts5(x)")
-except Exception:
-    sys.exit(1)
-PY
+# The notes store runs on the runtime's built-in `node:sqlite` (in-process,
+# synchronous, FTS5). Bun, the Electron main process and plain Node all ship
+# it, so there is no dependency to install; check that a Node on this machine
+# exposes it (informational — the plugin also runs inside Bun/Electron).
+check_notes_store() {
+  local bin
+  for bin in "${NOTES_NODE:-}" node /usr/local/bin/node /usr/bin/node \
+             "$(ls -d "$HOME"/.nvm/versions/node/*/bin/node 2>/dev/null | sort -r | head -n1)"; do
+    [ -n "$bin" ] || continue
+    command -v "$bin" >/dev/null 2>&1 || [ -x "$bin" ] || continue
+    if "$bin" -e '
+      const { DatabaseSync } = require("node:sqlite");
+      const db = new DatabaseSync(":memory:");
+      db.exec("CREATE VIRTUAL TABLE t USING fts5(x)");
+      db.close();
+    ' >/dev/null 2>&1; then
+      printf '%s\n' "$bin"
+      return 0
+    fi
+  done
+  return 1
 }
 
 # Executa um comando privilegiado: direto se root, sudo sem senha se possivel,
@@ -369,14 +397,15 @@ cmd_check() {
 
   step "dependencias"
   if command -v python3 >/dev/null 2>&1; then
-    local py; py="$(python3 -c 'import sys;print("%d.%d.%d"%sys.version_info[:3])')"
-    if check_fts5; then
-      say "  python3 : $py  (fts5: sim)"
-    else
-      say "  python3 : $py  (fts5: NAO — a busca vai degradar para LIKE)"
-    fi
+    say "  python3 : $(python3 -c 'import sys;print("%d.%d.%d"%sys.version_info[:3])')  (opcional)"
   else
-    warn "python3 ausente — o subsistema de memoria nao funciona"
+    say "  python3 : ausente  (opcional)"
+  fi
+  local node_sqlite
+  if node_sqlite="$(check_notes_store)"; then
+    say "  sqlite  : $node_sqlite  (node:sqlite, FTS5)"
+  else
+    warn "nenhum Node com node:sqlite — o plugin notes precisa de Node >= 22 (Bun/Electron ja trazem)"
     failed=1
   fi
   if command -v docker >/dev/null 2>&1; then
@@ -393,9 +422,6 @@ cmd_check() {
 
   step "componentes"
   local f
-  for f in "$BIN_DIR/notes"; do
-    if [ -e "$f" ]; then say "  bin     : $f"; else say "  bin     : (ausente) $f"; failed=1; fi
-  done
   for f in "$CONFIG_DIR/skills/notes/SKILL.md" "$CONFIG_DIR/skills/sandbox/SKILL.md"; do
     if [ -e "$f" ]; then say "  skill   : $f"; else say "  skill   : (ausente) $f"; failed=1; fi
   done
@@ -501,9 +527,8 @@ cmd_setup() {
   ensure_plugin
 
   step "2/7 memoria"
-  chmod +x "$ROOT/memory/notes.py" 2>/dev/null || true
-  link "$ROOT/memory/notes.py" "$BIN_DIR/notes" || true
   cleanup_legacy_bin
+  cleanup_notes_cli
   migrate_db
 
   step "3/7 skills"
@@ -556,12 +581,16 @@ cmd_setup() {
   fi
 
   step "7/7 verificacao"
-  NOTES_DB="$NEW_DB" "$ROOT/memory/notes.py" init
-  NOTES_DB="$NEW_DB" "$ROOT/memory/notes.py" doctor || warn "doctor reportou problemas (ver acima)"
-  if [ -e "$BIN_DIR/notes" ]; then
-    say "  bin:    ok ($BIN_DIR/notes)"
+  mkdir -p "$MEM_DIR" 2>/dev/null || true
+  if [ -f "$NEW_DB" ]; then
+    say "  banco:  ok ($NEW_DB)"
   else
-    warn "$BIN_DIR/notes ausente — rode ./setup.sh no seu terminal para criar o symlink"
+    say "  banco:  sera criado no primeiro uso ($NEW_DB)"
+  fi
+  if check_notes_store >/dev/null; then
+    say "  sqlite: ok (node:sqlite, FTS5)"
+  else
+    warn "nenhum Node com node:sqlite — o plugin notes precisa de Node >= 22"
   fi
   case ":$PATH:" in
     *":$BIN_DIR:"*) say "  PATH   : ok ($BIN_DIR)" ;;
