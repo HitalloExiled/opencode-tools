@@ -6,7 +6,7 @@
   "description": "Tools e skills do agente + bootstrap de maquina (memoria em SQLite, sandbox Docker).",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun test plugins/memory/test"
+    "test": "bun test plugins/memory/test plugins/notes/test"
   },
   "devDependencies": {
     "@huggingface/transformers": "^4.3.1",
