@@ -6,3 +6,6 @@
 	path = plugins/notes
 	url = git@github.com:HitalloExiled/opencode-notes.git
 	branch = main
+[submodule "plugins/plans"]
+	path = plugins/plans
+	url = git@github.com:HitalloExiled/opencode-plans.git
