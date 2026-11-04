@@ -374,7 +374,8 @@ planos do modo Plan e os expõe ao agente e ao usuário:
   botão **Salvar último plano** no painel. Não há captura automática.
 - **Progresso:** `plans.update` marca passos como concluídos; o painel
   **Planos** lista apenas o projeto da sessão ativa e permite marcar/desmarcar
-  passos e mudar o status do plano.
+  passos e mudar o status do plano. Cada alteração feita no painel gera uma
+  mensagem sintética na sessão, para o agente saber o que mudou.
 - **Injeção:** agentes fora do Plan recebem um bloco curto com os planos
   ativos do projeto e os passos pendentes do plano da sessão, para retomar
   trabalho de sessões anteriores.
