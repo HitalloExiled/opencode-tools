@@ -25,6 +25,8 @@ CONFIG_DIR="${OPENCODE_CONFIG_DIR:-$HOME/.config/opencode}"
 DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 MEM_DIR="$DATA_HOME/opencode/memory"
 NEW_DB="$MEM_DIR/notes.db"
+PLANS_DIR="$DATA_HOME/opencode/plans"
+PLANS_DB="$PLANS_DIR/plans.db"
 
 # Sandbox: same values as sandbox/host-firewall.sh (single source for the
 # policy name; set SANDBOX_RELAY_PORT to move the relay).
@@ -55,6 +57,8 @@ while [ $# -gt 0 ]; do
       CONFIG_DIR="$2/config/opencode"
       MEM_DIR="$2/data/opencode/memory"
       NEW_DB="$MEM_DIR/notes.db"
+      PLANS_DIR="$2/data/opencode/plans"
+      PLANS_DB="$PLANS_DIR/plans.db"
       SANDBOX=0
       shift 2 ;;
     -h|--help) usage; exit 0 ;;
@@ -124,6 +128,30 @@ ensure_notes_plugin() {
   # The notes skill moved out of skills/ (it documents the notes layer and
   # lives with the plugin); expose it from the submodule.
   link "$ROOT/plugins/notes/skills/notes/SKILL.md" "$CONFIG_DIR/skills/notes/SKILL.md" || true
+}
+
+ensure_plans_plugin() {
+  # The plans tools and the plans side panel live in the opencode-plans repo,
+  # vendored here as a git submodule (plugins/plans).
+  if [ ! -f "$ROOT/plugins/plans/index.ts" ]; then
+    if git -C "$ROOT" submodule update --init plugins/plans >/dev/null 2>&1; then
+      say "  submodule: plugins/plans inicializado (opencode-plans)"
+    else
+      warn "submodule plugins/plans ausente e git submodule update falhou (offline?); o plugin nao vai carregar"
+      return 1
+    fi
+  fi
+  link "$ROOT/plugins/plans" "$CONFIG_DIR/plugins/plans" || true
+}
+
+build_plans_gui() {
+  local d="$ROOT/plugins/plans"
+  [ -f "$d/package.json" ] || return 0
+  if (cd "$d" && npm run gui:build --silent) >/dev/null 2>&1; then
+    say "  gui    : plans compilado (dist/gui-experimental.cjs)"
+  else
+    warn "gui    : nao consegui compilar plans (npm run gui:build)"
+  fi
 }
 
 install_plugin_deps() {
@@ -428,10 +456,11 @@ cmd_check() {
   for f in "$CONFIG_DIR/tools/sandbox.ts"; do
     if [ -e "$f" ]; then say "  tool    : $f"; else say "  tool    : (ausente) $f"; failed=1; fi
   done
-  for f in "$CONFIG_DIR/plugins/memory" "$CONFIG_DIR/plugins/notes"; do
+  for f in "$CONFIG_DIR/plugins/memory" "$CONFIG_DIR/plugins/notes" "$CONFIG_DIR/plugins/plans"; do
     if [ -e "$f" ]; then say "  plugin  : $f"; else say "  plugin  : (ausente) $f"; failed=1; fi
   done
   say "  banco   : $NEW_DB"
+  say "  planos  : $PLANS_DB"
 
   if [ "$SANDBOX" = 1 ]; then
     step "sandbox"
@@ -496,9 +525,11 @@ cmd_remove() {
   done
   unlink_ours "$CONFIG_DIR/plugins/memory"
   unlink_ours "$CONFIG_DIR/plugins/notes"
+  unlink_ours "$CONFIG_DIR/plugins/plans"
   unlink_ours "$CONFIG_DIR/plugins/toolbelt"   # nome antigo
   say ""
   say "banco preservado em: $NEW_DB"
+  say "planos preservados em: $PLANS_DB"
   say "resumos/indice preservados em: \${XDG_DATA_HOME:-~/.local/share}/opencode/memory"
   say "sandbox: imagens/rede/guard ficam; para remover o guard (root):"
   say "  sudo $ROOT/sandbox/host-firewall.sh uninstall-unit"
@@ -549,10 +580,12 @@ cmd_setup() {
   # notes.ts moved to plugins/notes; drop the legacy flat-tool link if present.
   unlink_ours "$CONFIG_DIR/tools/notes.ts"
 
-  step "5/7 plugins (memory + notes)"
+  step "5/7 plugins (memory + notes + plans)"
   ensure_memory_plugin
   ensure_notes_plugin
+  ensure_plans_plugin
   install_plugin_deps
+  build_plans_gui
 
   local sandbox_failed=0
   if [ "$SANDBOX" = 1 ]; then
@@ -582,10 +615,16 @@ cmd_setup() {
 
   step "7/7 verificacao"
   mkdir -p "$MEM_DIR" 2>/dev/null || true
+  mkdir -p "$PLANS_DIR" 2>/dev/null || true
   if [ -f "$NEW_DB" ]; then
     say "  banco:  ok ($NEW_DB)"
   else
     say "  banco:  sera criado no primeiro uso ($NEW_DB)"
+  fi
+  if [ -f "$PLANS_DB" ]; then
+    say "  planos: ok ($PLANS_DB)"
+  else
+    say "  planos: sera criado no primeiro uso ($PLANS_DB)"
   fi
   if check_notes_store >/dev/null; then
     say "  sqlite: ok (node:sqlite, FTS5)"

@@ -3,12 +3,16 @@
 Tools e skills do agente, mais o **bootstrap de máquina** que os liga ao
 OpenCode.
 
-Três subsistemas:
+Quatro subsistemas:
 
 - **`notes`** — memória de longa duração (SQLite + FTS5 opcional), exposta
   pelo plugin `plugins/notes` (tools `notes.*` no Code Mode; nomes efetivos
   `notes_*` em sessões regulares) e por um painel lateral no app desktop.
   Não há CLI externa: tools e painel leem/gravam o SQLite diretamente.
+- **`plans`** — planos persistidos do modo Plan (SQLite dedicado), expostos
+  pelas tools `plans.*` e por um painel lateral **Planos**. O agente salva com
+  `plans.save` (ou o usuário com `/save-plan`) e marca o progresso com
+  `plans.update`; não há captura heurística.
 - **`sandbox`** — delegação de trabalho com risco para um container Docker
   descartável, via as tools `sandbox_*` e o CLI `opencode-sb`.
 - **`memory` (plugin)** — captura resumos de compactação, injeta o
@@ -28,7 +32,8 @@ opencode-tools/
 │   └── sandbox.ts
 ├── plugins/
 │   ├── memory/          # plugin OpenCode V2 (SUBMODULE → opencode-memory): resumos, injeção, busca
-│   └── notes/           # plugin OpenCode V2 + skill + painel desktop (SUBMODULE → opencode-notes): tools notes.* direto no SQLite
+│   ├── notes/           # plugin OpenCode V2 + skill + painel desktop (SUBMODULE → opencode-notes): tools notes.* direto no SQLite
+│   └── plans/           # plugin OpenCode V2 + painel Planos (SUBMODULE → opencode-plans): tools plans.* + plans.db
 ├── sandbox/
 │   ├── setup.sh        # expõe opencode-sb/opencode-sandboxed no PATH
 │   ├── run.sh          # orquestrador (task/steer/watch/peek/status/up/down/…)
@@ -43,9 +48,10 @@ opencode-tools/
 
 ## Setup
 
-Os plugins `plugins/memory` e `plugins/notes` são **submodules** dos repos
-standalone [**opencode-memory**](https://github.com/HitalloExiled/opencode-memory)
-e [**opencode-notes**](https://github.com/HitalloExiled/opencode-notes),
+Os plugins `plugins/memory`, `plugins/notes` e `plugins/plans` são **submodules** dos repos
+standalone [**opencode-memory**](https://github.com/HitalloExiled/opencode-memory),
+[**opencode-notes**](https://github.com/HitalloExiled/opencode-notes) e
+[**opencode-plans**](https://github.com/HitalloExiled/opencode-plans),
 respectivamente:
 
 ```bash
@@ -53,7 +59,7 @@ git clone --recurse-submodules git@github.com:HitalloExiled/opencode-tools.git
 cd opencode-tools
 ```
 
-(ou, num clone já feito: `git submodule update --init plugins/memory plugins/notes` — o
+(ou, num clone já feito: `git submodule update --init plugins/memory plugins/notes plugins/plans` — o
 `./setup.sh` faz isso sozinho quando um submodule está vazio.)
 
 ```bash
@@ -74,7 +80,7 @@ O que o `setup.sh` faz, em ordem:
 | memória | migra o banco legado, se existir; remove o symlink antigo do CLI `notes` |
 | skills | symlink `skills/<id>/SKILL.md` → `~/.config/opencode/skills/<id>/SKILL.md` (o skill `notes` vem do submodule `plugins/notes/skills/notes` e é linkado na etapa de plugins) |
 | tools | symlink `tools/*.ts` → `~/.config/opencode/tools/` |
-| plugins `memory` + `notes` | garante os submodules `plugins/memory` e `plugins/notes` inicializados (clones de `opencode-memory` e `opencode-notes`) + symlinks → `~/.config/opencode/plugins/{memory,notes}` + `npm install` dentro de cada plugin com `package.json`; remove o link legado `tools/notes.ts` (as tools `notes_*` viraram o plugin `notes`) |
+| plugins `memory` + `notes` + `plans` | garante os submodules `plugins/memory`, `plugins/notes` e `plugins/plans` inicializados (clones de `opencode-memory`, `opencode-notes` e `opencode-plans`) + symlinks → `~/.config/opencode/plugins/{memory,notes,plans}` + `npm install` dentro de cada plugin com `package.json`; compila o GUI de `plans`; remove o link legado `tools/notes.ts` (as tools `notes_*` viraram o plugin `notes`) |
 | sandbox | daemon docker → CLI `opencode-sb` → guard de firewall → imagens/rede → self-test → tarefa de fumaça |
 | verificação | `node:sqlite` (FTS5) no runtime, presença do banco, estado do sandbox, PATH |
 
@@ -92,7 +98,8 @@ O banco e o schema são criados sob demanda: o plugin aplica DDL + migrações
 idempotentes (`PRAGMA user_version`) na primeira abertura.
 
 ```
-$XDG_DATA_HOME/opencode/memory/notes.db     # banco (estado; nunca versionado)
+$XDG_DATA_HOME/opencode/memory/notes.db     # notes (estado; nunca versionado)
+$XDG_DATA_HOME/opencode/plans/plans.db      # planos persistidos (nunca versionado)
 ```
 
 | Objeto | Origem |
@@ -138,6 +145,7 @@ aqui vai só o mapa.
 | Origem | O que oferece |
 |---|---|
 | `notes.*` (plugin; `notes_*` em sessões regulares) | memória: `add`, `update`, `confirm`, `dispute`, `retract`, `history`, `restore`, `view`, `pin`, `unpin`, `search`, `doctor` — leitura/escrita direta no SQLite; `notes.add` **recusa** `#problem` sem Sintoma/Causa/Solução e aceita `author` (exibido como `(by <author>)`) |
+| `plans.*` (plugin; `plans_*` em sessões regulares) | planos: `save`, `list`, `get`, `update`, `delete`, `doctor` — leitura/escrita direta no `plans.db`; a gravação é sempre explícita (`plans.save` ou `/save-plan`) |
 | `opencode-sb task/steer/peek/logs/status/…` | sandbox (detalhes em `skills/sandbox/SKILL.md`) |
 | `sandbox_run/steer/peek/logs/status` | tools tipadas sobre o CLI; execução por `argv`, sem shell |
 
@@ -352,18 +360,40 @@ Isolamento por camadas: o plugin `notes` não conhece a camada `memory` (e
 vice-versa); o `/recall` do `memory` orienta o agente a usar as tools
 `notes.*`, mantendo cada plugin standalone.
 
+## Plugin: plans
+
+Plugin (`plugins/plans/`, id `plans`; vendored como **git submodule** do repo
+[opencode-plans](https://github.com/HitalloExiled/opencode-plans)) que persiste
+planos do modo Plan e os expõe ao agente e ao usuário:
+
+- **Tools:** `tools.plans.save`, `tools.plans.list`, `tools.plans.get`,
+  `tools.plans.update`, `tools.plans.delete`, `tools.plans.doctor` no Code
+  Mode; nomes efetivos `plans_*` em sessões regulares.
+- **Captura explícita:** o agente Plan é instruído a chamar `plans.save` ao
+  apresentar um plano final; o usuário também pode usar `/save-plan` ou o
+  botão **Salvar último plano** no painel. Não há captura automática.
+- **Progresso:** `plans.update` marca passos como concluídos; o painel
+  **Planos** permite marcar/desmarcar e mudar o status do plano.
+- **Injeção:** agentes fora do Plan recebem um bloco curto com os planos
+  ativos do projeto e os passos pendentes do plano da sessão, para retomar
+  trabalho de sessões anteriores.
+- **Banco:** `~/.local/share/opencode/plans/plans.db` (override `$PLANS_DB`),
+  acessado in-process com `node:sqlite`; a GUI fala com o processo principal
+  via IPC, nunca abre o banco no renderer.
+
 ## Desenvolvimento
 
 ```bash
-git submodule update --init plugins/memory plugins/notes   # se o clone veio sem os submodules
+git submodule update --init plugins/memory plugins/notes plugins/plans   # se o clone veio sem os submodules
 npm install        # devDeps: typescript, @types/node, @opencode-ai/plugin, @opencode/plugin, @opencode/client, @opencode/schema, zod
 npm run typecheck  # typecheck da raiz (types do plugin resolvem do node_modules da raiz)
-npm test           # suite do plugin memory (bun test, plugins/memory/test)
+npm test           # suites dos plugins (bun test, plugins/{memory,notes,plans}/test)
 ```
 
 Os plugins também se desenvolvem standalone nos repos
-[opencode-memory](https://github.com/HitalloExiled/opencode-memory) e
-[opencode-notes](https://github.com/HitalloExiled/opencode-notes)
+[opencode-memory](https://github.com/HitalloExiled/opencode-memory),
+[opencode-notes](https://github.com/HitalloExiled/opencode-notes) e
+[opencode-plans](https://github.com/HitalloExiled/opencode-plans)
 (`npm install && npm run typecheck` lá); mudanças neles voltam para o
 opencode-tools via `git submodule update` (commit do submodule atualizado no
 repo pai). O `setup.sh` roda `npm install` dentro de cada plugin com

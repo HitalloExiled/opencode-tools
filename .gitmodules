@@ -9,3 +9,4 @@
 [submodule "plugins/plans"]
 	path = plugins/plans
 	url = git@github.com:HitalloExiled/opencode-plans.git
+	branch = main

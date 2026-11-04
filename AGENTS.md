@@ -14,6 +14,7 @@ vendored in:
 |---|---|---|
 | `plugins/memory` | [opencode-memory](https://github.com/HitalloExiled/opencode-memory) | summaries, repo/session injection, cross-session search |
 | `plugins/notes` | [opencode-notes](https://github.com/HitalloExiled/opencode-notes) | `notes.*` tools + notes skill + desktop side-panel GUI, over `notes.db` |
+| `plugins/plans` | [opencode-plans](https://github.com/HitalloExiled/opencode-plans) | `plans.*` tools + desktop side-panel GUI, over a dedicated `plans.db` |
 
 Consequences:
 
@@ -26,8 +27,8 @@ Consequences:
 - **Each submodule pins a specific commit** of its own repo. The parent only
   stores that SHA (the "pointer"), not the files.
 - **Never edit submodule files and commit them from the parent.** Changes to
-  `plugins/memory/**` or `plugins/notes/**` must be committed **inside the
-  submodule repo first**, then the parent pointer is bumped. Doing it backwards
+  `plugins/memory/**`, `plugins/notes/**` or `plugins/plans/**` must be committed **inside
+  the submodule repo first**, then the parent pointer is bumped. Doing it backwards
   produces a dirty/invalid submodule state.
 - **The parent's typecheck/test only see submodule code once it is
   initialized** — an empty submodule dir means those files are absent.
@@ -38,7 +39,7 @@ Consequences:
 
 ### Two-part commit protocol (always)
 
-For a change inside `plugins/notes` or `plugins/memory`:
+For a change inside `plugins/notes`, `plugins/memory` or `plugins/plans`:
 
 1. `cd plugins/<name>` → `git add … && git commit`
 2. `git push origin main` (the submodule's own origin)
@@ -59,7 +60,8 @@ opencode-tools/
 │   └── sandbox/SKILL.md
 ├── plugins/
 │   ├── memory/         # SUBMODULE → opencode-memory
-│   └── notes/          # SUBMODULE → opencode-notes (its own AGENTS.md)
+│   ├── notes/          # SUBMODULE → opencode-notes (its own AGENTS.md)
+│   └── plans/          # SUBMODULE → opencode-plans (its own AGENTS.md)
 ├── sandbox/            # Docker sandbox: opencode-sb CLI, run.sh, Dockerfile, proxy/
 └── README.md
 ```
@@ -74,7 +76,7 @@ Run from the `opencode-tools/` root:
 ```bash
 bun install                                  # root deps (@opencode/* v2, typescript, zod, bun types)
 bun run typecheck                            # tsc --noEmit over tools/** + plugins/**/*.ts
-bun run test                                 # = bun test plugins/memory/test plugins/notes/test
+bun run test                                 # = bun test plugins/memory/test plugins/notes/test plugins/plans/test
 ```
 
 Notes on scope:
@@ -86,6 +88,8 @@ Notes on scope:
   initialized. Run each plugin's own scripts for its full build:
   - **notes** → `plugins/notes`: `bun run gui:build`, `bun run typecheck:gui`
     (full guide: **`plugins/notes/AGENTS.md`**)
+  - **plans** → `plugins/plans`: `bun run gui:build`, `bun run typecheck:gui`
+    (full guide: **`plugins/plans/AGENTS.md`**)
   - **memory** → `plugins/memory`: `bun run typecheck`, `bun test test`
     (product docs: `plugins/memory/README.md`)
 
@@ -94,6 +98,7 @@ Notes on scope:
 | Submodule | Doc |
 |---|---|
 | `plugins/notes` | **`plugins/notes/AGENTS.md`** — build, the two typechecks, `bun test` from the parent, hot-reload dev loop, schema v9, `ctx.*` cheatsheet, git workflow |
+| `plugins/plans` | **`plugins/plans/AGENTS.md`** — build, the two typechecks, `bun test` from the parent, hot-reload dev loop, plans schema, `ctx.*` cheatsheet, git workflow |
 | `plugins/memory` | `plugins/memory/README.md` — summaries, injection, cross-session search |
 
 When working on a plugin, open *its* AGENTS.md/README first; this file only
@@ -104,16 +109,19 @@ covers the parent glue.
 `setup.sh` is the single place that ties this repo to OpenCode. It is idempotent
 and, for the plugins, it:
 
-- `git submodule update --init plugins/memory` and `plugins/notes` (skipped if
+- `git submodule update --init plugins/memory`, `plugins/notes` and `plugins/plans` (skipped if
   already present; warns if offline).
-- Symlinks `plugins/memory` → `~/.config/opencode/plugins/memory` and
-  `plugins/notes` → `~/.config/opencode/plugins/notes`.
+- Symlinks `plugins/memory` → `~/.config/opencode/plugins/memory`,
+  `plugins/notes` → `~/.config/opencode/plugins/notes` and
+  `plugins/plans` → `~/.config/opencode/plugins/plans`.
 - Symlinks the notes skill: `plugins/notes/skills/notes/SKILL.md` →
   `~/.config/opencode/skills/notes/SKILL.md`.
 - Runs `npm install --legacy-peer-deps` inside each plugin (fresh clones have
   no `node_modules`).
-- Places `notes.db` under `~/.local/share/opencode/memory/` (never in the repo)
-  and checks the runtime's built-in `node:sqlite`.
+- Builds the plans GUI bundle (`npm run gui:build` in `plugins/plans`).
+- Places `notes.db` under `~/.local/share/opencode/memory/` and `plans.db`
+  under `~/.local/share/opencode/plans/` (never in the repo) and checks the
+  runtime's built-in `node:sqlite`.
 
 It also stands up the sandbox (daemon, guard, images, smoke) and retires
 legacy paths. Re-running it is safe; use it instead of doing the submodule/symlink
