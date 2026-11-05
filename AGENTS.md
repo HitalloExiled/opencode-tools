@@ -90,8 +90,9 @@ Notes on scope:
     (full guide: **`plugins/notes/AGENTS.md`**)
   - **plans** → `plugins/plans`: `bun run gui:build`, `bun run typecheck:gui`
     (full guide: **`plugins/plans/AGENTS.md`**)
-  - **memory** → `plugins/memory`: `bun run typecheck`, `bun test test`
-    (product docs: `plugins/memory/README.md`)
+  - **memory** → `plugins/memory`: `bun run typecheck`, `bun run typecheck:gui`,
+    `bun run gui:build`, `bun test test` (product docs:
+    `plugins/memory/README.md`)
 
 ## Per-submodule docs
 
@@ -118,7 +119,8 @@ and, for the plugins, it:
   `~/.config/opencode/skills/notes/SKILL.md`.
 - Runs `npm install --legacy-peer-deps` inside each plugin (fresh clones have
   no `node_modules`).
-- Builds the plans GUI bundle (`npm run gui:build` in `plugins/plans`).
+- Builds the plans and memory GUI bundles (`npm run gui:build` in
+  `plugins/plans` and `plugins/memory`).
 - Places `notes.db` under `~/.local/share/opencode/memory/` and `plans.db`
   under `~/.local/share/opencode/plans/` (never in the repo) and checks the
   runtime's built-in `node:sqlite`.

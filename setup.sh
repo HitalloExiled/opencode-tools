@@ -154,6 +154,16 @@ build_plans_gui() {
   fi
 }
 
+build_memory_gui() {
+  local d="$ROOT/plugins/memory"
+  [ -f "$d/package.json" ] || return 0
+  if (cd "$d" && npm run gui:build --silent) >/dev/null 2>&1; then
+    say "  gui    : memory compilado (dist/gui-experimental.cjs)"
+  else
+    warn "gui    : nao consegui compilar memory (npm run gui:build)"
+  fi
+}
+
 install_plugin_deps() {
   # A fresh clone (git submodule) arrives without node_modules: install the
   # npm deps inside every plugin that declares its own package.json. A newer
@@ -586,6 +596,7 @@ cmd_setup() {
   ensure_plans_plugin
   install_plugin_deps
   build_plans_gui
+  build_memory_gui
 
   local sandbox_failed=0
   if [ "$SANDBOX" = 1 ]; then
