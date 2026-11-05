@@ -380,8 +380,8 @@ planos do modo Plan e os expõe ao agente e ao usuário:
   ativos do projeto e os passos pendentes do plano da sessão, para retomar
   trabalho de sessões anteriores.
 - **Banco:** `~/.local/share/opencode/plans/plans.db` (override `$PLANS_DB`),
-  acessado in-process com `node:sqlite`; a GUI fala com o processo principal
-  via IPC, nunca abre o banco no renderer.
+  acessado in-process com `node:sqlite`; a GUI fala com o plugin servidor via
+  RPC, nunca abre o banco no renderer.
 
 ## Desenvolvimento
 
