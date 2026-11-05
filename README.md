@@ -368,17 +368,20 @@ planos do modo Plan e os expõe ao agente e ao usuário:
 
 - **Tools:** `tools.plans.save`, `tools.plans.list`, `tools.plans.get`,
   `tools.plans.update`, `tools.plans.delete`, `tools.plans.doctor` no Code
-  Mode; nomes efetivos `plans_*` em sessões regulares.
+  Mode; nomes efetivos `plans_*` em sessões regulares. `list`/`get` são
+  **session-scoped** por padrão; `update`/`delete` recusam plano de outra
+  sessão. `scope: "project"` no `list`/`get` é o opt-in para outras sessões.
 - **Captura explícita:** o agente Plan é instruído a chamar `plans.save` ao
   apresentar um plano final; o usuário também pode usar `/save-plan` ou o
   botão **Salvar último plano** no painel. Não há captura automática.
 - **Progresso:** `plans.update` marca passos como concluídos; o painel
-  **Planos** lista apenas o projeto da sessão ativa e permite marcar/desmarcar
-  passos e mudar o status do plano. Cada alteração feita no painel gera uma
-  mensagem sintética na sessão, para o agente saber o que mudou.
+  **Planos** lista por padrão só a **sessão ativa**. O toggle **Projeto** traz
+  todos os planos do projeto e o botão **Mover para esta sessão** move um
+  plano de outra sessão para a ativa. Cada alteração gera uma mensagem
+  sintética na sessão, para o agente saber o que mudou.
 - **Injeção:** agentes fora do Plan recebem um bloco curto com os planos
-  ativos do projeto e os passos pendentes do plano da sessão, para retomar
-  trabalho de sessões anteriores.
+  ativos **da sessão atual** e os passos pendentes, para retomar trabalho sem
+  misturar sessões paralelas.
 - **Banco:** `~/.local/share/opencode/plans/plans.db` (override `$PLANS_DB`),
   acessado in-process com `node:sqlite`; a GUI fala com o plugin servidor via
   RPC, nunca abre o banco no renderer.
