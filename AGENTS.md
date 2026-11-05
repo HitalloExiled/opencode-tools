@@ -13,7 +13,7 @@ vendored in:
 | Path | Repo | What it is |
 |---|---|---|
 | `plugins/memory` | [opencode-memory](https://github.com/HitalloExiled/opencode-memory) | summaries, repo/session injection, cross-session search |
-| `plugins/notes` | [opencode-notes](https://github.com/HitalloExiled/opencode-notes) | `notes.*` tools + notes skill + desktop side-panel GUI, over `notes.db` |
+| `plugins/notes` | [opencode-notes](https://github.com/HitalloExiled/opencode-notes) | `notes.*` tools + notes skill + desktop side-panel GUI + `<notes-context>` session injection, over `notes.db` |
 | `plugins/plans` | [opencode-plans](https://github.com/HitalloExiled/opencode-plans) | `plans.*` tools + desktop side-panel GUI, over a dedicated `plans.db` |
 
 Consequences:
