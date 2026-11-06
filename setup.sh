@@ -154,6 +154,30 @@ build_plans_gui() {
   fi
 }
 
+ensure_stats_plugin() {
+  # The stats/side panel and the system prompt viewer live in the
+  # opencode-stats repo, vendored here as a git submodule (plugins/stats).
+  if [ ! -f "$ROOT/plugins/stats/index.ts" ]; then
+    if git -C "$ROOT" submodule update --init plugins/stats >/dev/null 2>&1; then
+      say "  submodule: plugins/stats inicializado (opencode-stats)"
+    else
+      warn "submodule plugins/stats ausente e git submodule update falhou (offline?); o plugin nao vai carregar"
+      return 1
+    fi
+  fi
+  link "$ROOT/plugins/stats" "$CONFIG_DIR/plugins/stats" || true
+}
+
+build_stats_gui() {
+  local d="$ROOT/plugins/stats"
+  [ -f "$d/package.json" ] || return 0
+  if (cd "$d" && npm run gui:build --silent) >/dev/null 2>&1; then
+    say "  gui    : stats compilado (dist/gui-experimental.cjs)"
+  else
+    warn "gui    : nao consegui compilar stats (npm run gui:build)"
+  fi
+}
+
 build_memory_gui() {
   local d="$ROOT/plugins/memory"
   [ -f "$d/package.json" ] || return 0
@@ -466,7 +490,7 @@ cmd_check() {
   for f in "$CONFIG_DIR/tools/sandbox.ts"; do
     if [ -e "$f" ]; then say "  tool    : $f"; else say "  tool    : (ausente) $f"; failed=1; fi
   done
-  for f in "$CONFIG_DIR/plugins/memory" "$CONFIG_DIR/plugins/notes" "$CONFIG_DIR/plugins/plans"; do
+  for f in "$CONFIG_DIR/plugins/memory" "$CONFIG_DIR/plugins/notes" "$CONFIG_DIR/plugins/plans" "$CONFIG_DIR/plugins/stats"; do
     if [ -e "$f" ]; then say "  plugin  : $f"; else say "  plugin  : (ausente) $f"; failed=1; fi
   done
   say "  banco   : $NEW_DB"
@@ -536,6 +560,7 @@ cmd_remove() {
   unlink_ours "$CONFIG_DIR/plugins/memory"
   unlink_ours "$CONFIG_DIR/plugins/notes"
   unlink_ours "$CONFIG_DIR/plugins/plans"
+  unlink_ours "$CONFIG_DIR/plugins/stats"
   unlink_ours "$CONFIG_DIR/plugins/toolbelt"   # nome antigo
   say ""
   say "banco preservado em: $NEW_DB"
@@ -590,13 +615,15 @@ cmd_setup() {
   # notes.ts moved to plugins/notes; drop the legacy flat-tool link if present.
   unlink_ours "$CONFIG_DIR/tools/notes.ts"
 
-  step "5/7 plugins (memory + notes + plans)"
+  step "5/7 plugins (memory + notes + plans + stats)"
   ensure_memory_plugin
   ensure_notes_plugin
   ensure_plans_plugin
+  ensure_stats_plugin
   install_plugin_deps
   build_plans_gui
   build_memory_gui
+  build_stats_gui
 
   local sandbox_failed=0
   if [ "$SANDBOX" = 1 ]; then

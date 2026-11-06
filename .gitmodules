@@ -10,3 +10,6 @@
 	path = plugins/plans
 	url = git@github.com:HitalloExiled/opencode-plans.git
 	branch = main
+[submodule "plugins/stats"]
+	path = plugins/stats
+	url = git@github.com:HitalloExiled/opencode-stats.git

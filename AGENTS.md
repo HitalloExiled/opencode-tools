@@ -7,7 +7,7 @@ submodules*, not here — read that before touching anything.
 
 ## ⚠️ Submodule dependency (read this first)
 
-`opencode-tools` does **not** contain the plugin source. Two submodules are
+`opencode-tools` does **not** contain the plugin source. Four submodules are
 vendored in:
 
 | Path | Repo | What it is |
@@ -15,6 +15,7 @@ vendored in:
 | `plugins/memory` | [opencode-memory](https://github.com/HitalloExiled/opencode-memory) | summaries, repo/session injection, cross-session search |
 | `plugins/notes` | [opencode-notes](https://github.com/HitalloExiled/opencode-notes) | `notes.*` tools + notes skill + desktop side-panel GUI + `<notes-context>` session injection, over `notes.db` |
 | `plugins/plans` | [opencode-plans](https://github.com/HitalloExiled/opencode-plans) | `plans.*` tools + desktop side-panel GUI, over a dedicated `plans.db` |
+| `plugins/stats` | [opencode-stats](https://github.com/HitalloExiled/opencode-stats) | statistics side panel (tok/s gauge + history + tools/reasoning) and the session system-prompt viewer, captured server-side |
 
 Consequences:
 
@@ -27,19 +28,21 @@ Consequences:
 - **Each submodule pins a specific commit** of its own repo. The parent only
   stores that SHA (the "pointer"), not the files.
 - **Never edit submodule files and commit them from the parent.** Changes to
-  `plugins/memory/**`, `plugins/notes/**` or `plugins/plans/**` must be committed **inside
+  `plugins/memory/**`, `plugins/notes/**`, `plugins/plans/**` or
+  `plugins/stats/**` must be committed **inside
   the submodule repo first**, then the parent pointer is bumped. Doing it backwards
   produces a dirty/invalid submodule state.
 - **The parent's typecheck/test only see submodule code once it is
   initialized** — an empty submodule dir means those files are absent.
 
 `setup.sh` automates all of this (see below): it runs
-`git submodule update --init` for both, symlinks them into
+`git submodule update --init` for all of them, symlinks them into
 `~/.config/opencode/plugins/`, and runs `npm install` inside each.
 
 ### Two-part commit protocol (always)
 
-For a change inside `plugins/notes`, `plugins/memory` or `plugins/plans`:
+For a change inside `plugins/notes`, `plugins/memory`, `plugins/plans` or
+`plugins/stats`:
 
 1. `cd plugins/<name>` → `git add … && git commit`
 2. `git push origin main` (the submodule's own origin)
@@ -61,7 +64,8 @@ opencode-tools/
 ├── plugins/
 │   ├── memory/         # SUBMODULE → opencode-memory
 │   ├── notes/          # SUBMODULE → opencode-notes (its own AGENTS.md)
-│   └── plans/          # SUBMODULE → opencode-plans (its own AGENTS.md)
+│   ├── plans/          # SUBMODULE → opencode-plans (its own AGENTS.md)
+│   └── stats/          # SUBMODULE → opencode-stats (its own AGENTS.md)
 ├── sandbox/            # Docker sandbox: opencode-sb CLI, run.sh, Dockerfile, proxy/
 └── README.md
 ```
@@ -76,7 +80,7 @@ Run from the `opencode-tools/` root:
 ```bash
 bun install                                  # root deps (@opencode/* v2, typescript, zod, bun types)
 bun run typecheck                            # tsc --noEmit over tools/** + plugins/**/*.ts
-bun run test                                 # = bun test plugins/memory/test plugins/notes/test plugins/plans/test
+bun run test                                 # = bun test plugins/memory/test plugins/notes/test plugins/plans/test plugins/stats/test
 ```
 
 Notes on scope:
@@ -90,6 +94,8 @@ Notes on scope:
     (full guide: **`plugins/notes/AGENTS.md`**)
   - **plans** → `plugins/plans`: `bun run gui:build`, `bun run typecheck:gui`
     (full guide: **`plugins/plans/AGENTS.md`**)
+  - **stats** → `plugins/stats`: `bun run gui:build`, `bun run typecheck:gui`
+    (full guide: **`plugins/stats/AGENTS.md`**)
   - **memory** → `plugins/memory`: `bun run typecheck`, `bun run typecheck:gui`,
     `bun run gui:build`, `bun test test` (product docs:
     `plugins/memory/README.md`)
@@ -100,6 +106,7 @@ Notes on scope:
 |---|---|
 | `plugins/notes` | **`plugins/notes/AGENTS.md`** — build, the two typechecks, `bun test` from the parent, hot-reload dev loop, schema v9, `ctx.*` cheatsheet, git workflow |
 | `plugins/plans` | **`plugins/plans/AGENTS.md`** — build, the two typechecks, `bun test` from the parent, hot-reload dev loop, plans schema, `ctx.*` cheatsheet, git workflow |
+| `plugins/stats` | **`plugins/stats/AGENTS.md`** — server capture + GUI, the two typechecks, `bun test` from the parent, RPC, prompt classification, git workflow |
 | `plugins/memory` | `plugins/memory/README.md` — summaries, injection, cross-session search |
 
 When working on a plugin, open *its* AGENTS.md/README first; this file only
@@ -110,17 +117,19 @@ covers the parent glue.
 `setup.sh` is the single place that ties this repo to OpenCode. It is idempotent
 and, for the plugins, it:
 
-- `git submodule update --init plugins/memory`, `plugins/notes` and `plugins/plans` (skipped if
-  already present; warns if offline).
+- `git submodule update --init plugins/memory`, `plugins/notes`,
+  `plugins/plans` and `plugins/stats` (skipped if already present; warns if
+  offline).
 - Symlinks `plugins/memory` → `~/.config/opencode/plugins/memory`,
-  `plugins/notes` → `~/.config/opencode/plugins/notes` and
-  `plugins/plans` → `~/.config/opencode/plugins/plans`.
+  `plugins/notes` → `~/.config/opencode/plugins/notes`,
+  `plugins/plans` → `~/.config/opencode/plugins/plans` and
+  `plugins/stats` → `~/.config/opencode/plugins/stats`.
 - Symlinks the notes skill: `plugins/notes/skills/notes/SKILL.md` →
   `~/.config/opencode/skills/notes/SKILL.md`.
 - Runs `npm install --legacy-peer-deps` inside each plugin (fresh clones have
   no `node_modules`).
-- Builds the plans and memory GUI bundles (`npm run gui:build` in
-  `plugins/plans` and `plugins/memory`).
+- Builds the plans, memory and stats GUI bundles (`npm run gui:build` in
+  `plugins/plans`, `plugins/memory` and `plugins/stats`).
 - Places `notes.db` under `~/.local/share/opencode/memory/` and `plans.db`
   under `~/.local/share/opencode/plans/` (never in the repo) and checks the
   runtime's built-in `node:sqlite`.
@@ -139,6 +148,10 @@ guard. Risky/uncertain work is delegated to a disposable container there. See
 ## Conventions / hard rules
 
 - **UI copy is PT-BR; code is English.**
+- **Every user-facing message — UI copy, toasts and synthetic/session
+  messages — must exist in PT-BR and EN-US, with EN-US as the fallback.** Code
+  and identifiers stay English. Never hardcode a UI or synthetic string in a
+  single language.
 - **Never read OpenCode's `opencode.db` directly** — GUI/app data comes from the
   official `ctx.client.*` APIs only.
 - **No `*.db` in the repo.** Databases live on disk under

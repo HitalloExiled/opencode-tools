@@ -3,7 +3,7 @@
 Tools e skills do agente, mais o **bootstrap de máquina** que os liga ao
 OpenCode.
 
-Quatro subsistemas:
+Cinco subsistemas:
 
 - **`notes`** — memória de longa duração (SQLite + FTS5 opcional), exposta
   pelo plugin `plugins/notes` (tools `notes.*` no Code Mode; nomes efetivos
@@ -13,6 +13,9 @@ Quatro subsistemas:
   pelas tools `plans.*` e por um painel lateral **Planos**. O agente salva com
   `plans.save` (ou o usuário com `/save-plan`) e marca o progresso com
   `plans.update`; não há captura heurística.
+- **`stats`** — painel **Estatísticas** (gauge de tok/s, histórico, reasoning,
+  tool calls e totais da sessão) e aba **System prompt** com o prompt fixo,
+  adicionado e dinâmico. O prompt é capturado no servidor; não há banco novo.
 - **`sandbox`** — delegação de trabalho com risco para um container Docker
   descartável, via as tools `sandbox_*` e o CLI `opencode-sb`.
 - **`memory` (plugin)** — captura resumos de compactação, injeta o
@@ -33,7 +36,8 @@ opencode-tools/
 ├── plugins/
 │   ├── memory/          # plugin OpenCode V2 (SUBMODULE → opencode-memory): resumos, injeção, busca
 │   ├── notes/           # plugin OpenCode V2 + skill + painel desktop (SUBMODULE → opencode-notes): tools notes.* direto no SQLite
-│   └── plans/           # plugin OpenCode V2 + painel Planos (SUBMODULE → opencode-plans): tools plans.* + plans.db
+│   ├── plans/           # plugin OpenCode V2 + painel Planos (SUBMODULE → opencode-plans): tools plans.* + plans.db
+│   └── stats/           # plugin OpenCode V2 + painel Estatísticas/System prompt (SUBMODULE → opencode-stats)
 ├── sandbox/
 │   ├── setup.sh        # expõe opencode-sb/opencode-sandboxed no PATH
 │   ├── run.sh          # orquestrador (task/steer/watch/peek/status/up/down/…)
@@ -48,10 +52,11 @@ opencode-tools/
 
 ## Setup
 
-Os plugins `plugins/memory`, `plugins/notes` e `plugins/plans` são **submodules** dos repos
+Os plugins `plugins/memory`, `plugins/notes`, `plugins/plans` e `plugins/stats` são **submodules** dos repos
 standalone [**opencode-memory**](https://github.com/HitalloExiled/opencode-memory),
-[**opencode-notes**](https://github.com/HitalloExiled/opencode-notes) e
-[**opencode-plans**](https://github.com/HitalloExiled/opencode-plans),
+[**opencode-notes**](https://github.com/HitalloExiled/opencode-notes),
+[**opencode-plans**](https://github.com/HitalloExiled/opencode-plans) e
+[**opencode-stats**](https://github.com/HitalloExiled/opencode-stats),
 respectivamente:
 
 ```bash
@@ -59,7 +64,7 @@ git clone --recurse-submodules git@github.com:HitalloExiled/opencode-tools.git
 cd opencode-tools
 ```
 
-(ou, num clone já feito: `git submodule update --init plugins/memory plugins/notes plugins/plans` — o
+(ou, num clone já feito: `git submodule update --init plugins/memory plugins/notes plugins/plans plugins/stats` — o
 `./setup.sh` faz isso sozinho quando um submodule está vazio.)
 
 ```bash
@@ -80,7 +85,7 @@ O que o `setup.sh` faz, em ordem:
 | memória | migra o banco legado, se existir; remove o symlink antigo do CLI `notes` |
 | skills | symlink `skills/<id>/SKILL.md` → `~/.config/opencode/skills/<id>/SKILL.md` (o skill `notes` vem do submodule `plugins/notes/skills/notes` e é linkado na etapa de plugins) |
 | tools | symlink `tools/*.ts` → `~/.config/opencode/tools/` |
-| plugins `memory` + `notes` + `plans` | garante os submodules `plugins/memory`, `plugins/notes` e `plugins/plans` inicializados (clones de `opencode-memory`, `opencode-notes` e `opencode-plans`) + symlinks → `~/.config/opencode/plugins/{memory,notes,plans}` + `npm install` dentro de cada plugin com `package.json`; compila o GUI de `plans`; remove o link legado `tools/notes.ts` (as tools `notes_*` viraram o plugin `notes`) |
+| plugins `memory` + `notes` + `plans` + `stats` | garante os submodules `plugins/memory`, `plugins/notes`, `plugins/plans` e `plugins/stats` inicializados (clones de `opencode-memory`, `opencode-notes`, `opencode-plans` e `opencode-stats`) + symlinks → `~/.config/opencode/plugins/{memory,notes,plans,stats}` + `npm install` dentro de cada plugin com `package.json`; compila o GUI de `plans`, `memory` e `stats`; remove o link legado `tools/notes.ts` (as tools `notes_*` viraram o plugin `notes`) |
 | sandbox | daemon docker → CLI `opencode-sb` → guard de firewall → imagens/rede → self-test → tarefa de fumaça |
 | verificação | `node:sqlite` (FTS5) no runtime, presença do banco, estado do sandbox, PATH |
 
@@ -386,19 +391,50 @@ planos do modo Plan e os expõe ao agente e ao usuário:
   acessado in-process com `node:sqlite`; a GUI fala com o plugin servidor via
   RPC, nunca abre o banco no renderer.
 
+## Plugin: stats
+
+Plugin (`plugins/stats/`, id `stats`; vendored como **git submodule** do repo
+[opencode-stats](https://github.com/HitalloExiled/opencode-stats)) com duas
+abas no painel lateral e uma faixa no cabeçalho da sessão:
+
+- **Estatísticas:** gauge radial de tok/s (valor ao vivo com `~` e exato ao
+  concluir o passo, com a média da sessão marcada no arco), gráfico de linha
+  com o histórico (turno de 60s ou sessão por passo), reasoning (tokens, tempo
+  e participação no output), tool calls (status/duração/argumento) e totais da
+  sessão: tempo médio por resposta e por turno, tok/s médio/máximo, tokens,
+  custo, ferramentas e modelos.
+- **System prompt:** o `system` final do request, separado em **Fixo** (prompt
+  base + `core/*`), **Adicionado** (`core/instructions`, AGENTS.md) e
+  **Dinâmico** (`api/*` + blocos de `notes`, `memory` e `plans`). Tem filtro,
+  busca, visão por fonte ou texto completo, copiar por parte, copiar tudo e
+  salvar `.md`.
+- **Faixa do cabeçalho:** `⚡ ~27.4 tok/s · 🕐 18.6s · 🧠 1.2k · 🔧 7 tools`,
+  com clique para abrir a aba.
+
+Mecânica: o servidor registra `ctx.session.hook("context")`, captura o array
+`system` (com `metadata.experimental.instructions`, que traz as chaves
+`core/instructions`, `api/<key>` etc.), guarda a última captura por sessão **em
+memória** e a serve pela RPC `systemPrompt`. A GUI calcula as métricas a partir
+de `session.server.data` e de `session.context` e desenha gauge/gráfico em SVG,
+sem biblioteca de charts. Não há banco novo nem escrita no repositório.
+
+Atalhos: `mod+shift+s` (Estatísticas) e `mod+shift+i` (System prompt); entradas
+também no menu do painel da sessão.
+
 ## Desenvolvimento
 
 ```bash
-git submodule update --init plugins/memory plugins/notes plugins/plans   # se o clone veio sem os submodules
+git submodule update --init plugins/memory plugins/notes plugins/plans plugins/stats   # se o clone veio sem os submodules
 npm install        # devDeps: typescript, @types/node, @opencode-ai/plugin, @opencode/plugin, @opencode/client, @opencode/schema, zod
 npm run typecheck  # typecheck da raiz (types do plugin resolvem do node_modules da raiz)
-npm test           # suites dos plugins (bun test, plugins/{memory,notes,plans}/test)
+npm test           # suites dos plugins (bun test, plugins/{memory,notes,plans,stats}/test)
 ```
 
 Os plugins também se desenvolvem standalone nos repos
 [opencode-memory](https://github.com/HitalloExiled/opencode-memory),
-[opencode-notes](https://github.com/HitalloExiled/opencode-notes) e
-[opencode-plans](https://github.com/HitalloExiled/opencode-plans)
+[opencode-notes](https://github.com/HitalloExiled/opencode-notes),
+[opencode-plans](https://github.com/HitalloExiled/opencode-plans) e
+[opencode-stats](https://github.com/HitalloExiled/opencode-stats)
 (`npm install && npm run typecheck` lá); mudanças neles voltam para o
 opencode-tools via `git submodule update` (commit do submodule atualizado no
 repo pai). O `setup.sh` roda `npm install` dentro de cada plugin com
