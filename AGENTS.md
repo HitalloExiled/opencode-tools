@@ -140,6 +140,10 @@ keyboard navigation, i18n, accessibility, the `Panel` contract and the
 shared → plugin → parent commit protocol. New panels start from it; components
 used by two or more plugins go to `shared/`.
 
+`bun run lint:gui` enforces the mechanical rules (`scripts/gui-lint.sh`): raw
+hex colors, tokens that do not exist, PT literals outside `i18n.ts`/`setup.tsx`
+and relative imports into `shared/`.
+
 ## setup.sh (bootstrap)
 
 `setup.sh` is the single place that ties this repo to OpenCode. It is idempotent

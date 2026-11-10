@@ -302,4 +302,5 @@ commit.
 - [ ] Classes prefixadas; `SHARED_CSS` renderizado uma vez.
 - [ ] `Panel` com `mobile`, `closed`, `list(open)`, render keyed, sem `fallback`.
 - [ ] `npm run typecheck:gui` + `npm run gui:build` limpos; reload sem erro no log.
+- [ ] `bun run lint:gui` limpo (hex cru, token inexistente, PT fora do i18n, import relativo do shared).
 - [ ] Commits na ordem shared → plugins → pai.
