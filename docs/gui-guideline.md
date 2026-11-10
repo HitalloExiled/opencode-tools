@@ -94,7 +94,7 @@ ações (ghost small)`. Sem título duplicado no corpo.
   padding: 9px 10px;
   display: flex; flex-direction: column; gap: 4px;
 }
-.<p>-card:hover { border-color: var(--v2-border-border-strong); } /* só se clicável */
+.<p>-card:hover { border-color: var(--v2-border-border-strong); } /* só se clicável; não troque o fundo */
 ```
 
 Lista de cartões usa `.os-list` do shared (`display: flex; flex-direction: column; gap: 10px`). Grupo com cabeçalho em caps 10.5/600 muted.
