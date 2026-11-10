@@ -16,7 +16,7 @@ vendored in — the four plugins plus the shared GUI library:
 | `plugins/notes` | [opencode-notes](https://github.com/HitalloExiled/opencode-notes) | `notes.*` tools + notes skill + desktop side-panel GUI + `<notes-context>` session injection, over `notes.db` |
 | `plugins/plans` | [opencode-plans](https://github.com/HitalloExiled/opencode-plans) | `plans.*` tools + desktop side-panel GUI, over a dedicated `plans.db` |
 | `plugins/stats` | [opencode-stats](https://github.com/HitalloExiled/opencode-stats) | statistics side panel (tok/s gauge + history + tools/reasoning) and the session system-prompt viewer, captured server-side |
-| `shared` | [opencode-shared](https://github.com/HitalloExiled/opencode-shared) | `@hitalloexiled/opencode-shared/gui`: scroll nav (infinite scroll + Home/End/PageUp/PageDown), states, status chip, i18n factory, panel registration |
+| `shared` | [opencode-shared](https://github.com/HitalloExiled/opencode-shared) | `opencode-shared/gui`: scroll nav (infinite scroll + Home/End/PageUp/PageDown), states, status chip, i18n factory, panel registration |
 
 Consequences:
 
@@ -36,7 +36,7 @@ Consequences:
 - **The parent's typecheck/test only see submodule code once it is
   initialized** — an empty submodule dir means those files are absent.
 - **Plugins consume the shared GUI as a package**, never by a relative path:
-  `@hitalloexiled/opencode-shared` is declared in each plugin's
+  `opencode-shared` is declared in each plugin's
   `package.json` (pinned by commit). The checked-out `shared/` submodule is the
   development tree; `setup.sh` links it into each plugin's `node_modules`.
 
@@ -50,7 +50,7 @@ the shared package into the four plugins.
 For a change inside `shared`:
 
 1. `cd shared` → commit + `git push origin main` (+ tag when the API changes).
-2. In each affected plugin: bump the `@hitalloexiled/opencode-shared` commit in
+2. In each affected plugin: bump the `opencode-shared` commit in
    `package.json` + lock → commit + push.
 3. Back in `opencode-tools`: `git add shared plugins/<name>` → commit the
    pointers → `git push origin main`.
@@ -81,7 +81,7 @@ opencode-tools/
 │   ├── notes/          # SUBMODULE → opencode-notes (its own AGENTS.md)
 │   ├── plans/          # SUBMODULE → opencode-plans (its own AGENTS.md)
 │   └── stats/          # SUBMODULE → opencode-stats (its own AGENTS.md)
-├── shared/             # SUBMODULE → opencode-shared (@hitalloexiled/opencode-shared)
+├── shared/             # SUBMODULE → opencode-shared (opencode-shared)
 ├── sandbox/            # Docker sandbox: opencode-sb CLI, run.sh, Dockerfile, proxy/
 └── README.md
 ```
@@ -156,7 +156,7 @@ and, for the plugins, it:
   `~/.config/opencode/skills/notes/SKILL.md`.
 - Runs `npm install --legacy-peer-deps` inside each plugin and `shared` (fresh
   clones have no `node_modules`).
-- `npm link`s `shared` and links `@hitalloexiled/opencode-shared` into each
+- `npm link`s `shared` and links `opencode-shared` into each
   plugin, so the working tree is used instead of the git package. Falls back to
   a direct symlink when `npm link` cannot write the global prefix.
 - Builds the plans, memory and stats GUI bundles (`npm run gui:build` in
@@ -191,7 +191,11 @@ guard. Risky/uncertain work is delegated to a disposable container there. See
 - Respect each submodule's own AGENTS.md/README — they are the authoritative
   guides for their code.
 - **GUI code used by two or more plugins lives in `shared/`**, imported as
-  `@hitalloexiled/opencode-shared/gui` — never copied between plugins.
+  `opencode-shared/gui` — never copied between plugins.
+- **Package names stay unscoped** (`opencode-notes`, `opencode-shared`):
+  OpenCode 2.2.7 does not discover a local plugin whose `package.json` name is
+  scoped (`@scope/name`); it disappears from the server inventory and its GUI
+  never loads.
 
 ## Quick checklist for a change
 

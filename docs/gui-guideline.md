@@ -2,7 +2,7 @@
 
 Contrato visual e comportamental dos painéis laterais do OpenCode neste
 repositório: `memory`, `notes`, `plans` e `stats`. Código comum vive em
-[`shared/`](../shared) (`@hitalloexiled/opencode-shared/gui`); o layout, os
+[`shared/`](../shared) (`opencode-shared/gui`); o layout, os
 dados e o texto de cada painel continuam no plugin.
 
 > Regra de ouro: **parecer o app**. Controles do host (`ctx.ui.*`), tokens do
@@ -262,16 +262,24 @@ Plugin novo reserva a letra nesta tabela antes de usar.
 ```ts
 import { SHARED_CSS, createScrollNav, ScrollNav, EmptyState, ErrorBanner,
          LoadingRow, EndMarker, StatusChip, createI18n, registerSidePanel }
-  from "@hitalloexiled/opencode-shared/gui";
+  from "opencode-shared/gui";
 ```
 
 - Declare no `package.json`:
-  `"@hitalloexiled/opencode-shared": "github:HitalloExiled/opencode-shared#<sha>"`.
+  `"opencode-shared": "github:HitalloExiled/opencode-shared#<sha>"`.
 - Proibido import relativo para `shared/`.
 - `setup.sh` faz `npm link` do working tree em cada plugin.
 - Dev loop: editar `shared/src` → `npm run build` (ou `npm run dev`) no shared →
   `npm run gui:build` no plugin.
 - `dist/` do shared é versionado (install por git sem toolchain).
+
+### Nomes de pacote (restrição do host)
+
+Plugin local precisa de `name` **sem escopo** (`opencode-notes`, não
+`@scope/opencode-notes`): o OpenCode 2.2.7 não descobre um diretório em
+`plugins/` cujo `package.json` tenha nome escopado — o plugin some do
+inventário do servidor e o GUI não carrega. Por isso o pacote compartilhado
+também é `opencode-shared`. Revisar se o host passar a aceitar nomes escopados.
 
 ## 19. Protocolo de commit (três níveis)
 

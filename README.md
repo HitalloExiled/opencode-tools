@@ -38,7 +38,7 @@ opencode-tools/
 │   ├── notes/           # plugin OpenCode V2 + skill + painel desktop (SUBMODULE → opencode-notes): tools notes.* direto no SQLite
 │   ├── plans/           # plugin OpenCode V2 + painel Planos (SUBMODULE → opencode-plans): tools plans.* + plans.db
 │   └── stats/           # plugin OpenCode V2 + painel Estatísticas/System prompt (SUBMODULE → opencode-stats)
-├── shared/              # SUBMODULE → opencode-shared: kit de GUI comum (@hitalloexiled/opencode-shared/gui)
+├── shared/              # SUBMODULE → opencode-shared: kit de GUI comum (opencode-shared/gui)
 ├── docs/
 │   └── gui-guideline.md # contrato visual/comportamental dos painéis laterais
 ├── sandbox/
@@ -62,7 +62,7 @@ standalone [**opencode-memory**](https://github.com/HitalloExiled/opencode-memor
 [**opencode-stats**](https://github.com/HitalloExiled/opencode-stats),
 respectivamente. O código de GUI comum aos painéis mora em
 [**opencode-shared**](https://github.com/HitalloExiled/opencode-shared)
-(submodule `shared/`), consumido como o pacote `@hitalloexiled/opencode-shared`:
+(submodule `shared/`), consumido como o pacote `opencode-shared`:
 
 ```bash
 git clone --recurse-submodules git@github.com:HitalloExiled/opencode-tools.git
@@ -94,7 +94,7 @@ O que o `setup.sh` faz, em ordem:
 | skills | symlink `skills/<id>/SKILL.md` → `~/.config/opencode/skills/<id>/SKILL.md` (o skill `notes` vem do submodule `plugins/notes/skills/notes` e é linkado na etapa de plugins) |
 | tools | symlink `tools/*.ts` → `~/.config/opencode/tools/` |
 | plugins `memory` + `notes` + `plans` + `stats` | garante os submodules `plugins/memory`, `plugins/notes`, `plugins/plans` e `plugins/stats` inicializados (clones de `opencode-memory`, `opencode-notes`, `opencode-plans` e `opencode-stats`) + symlinks → `~/.config/opencode/plugins/{memory,notes,plans,stats}` + `npm install` dentro de cada plugin com `package.json`; compila o GUI de `plans`, `memory` e `stats`; remove o link legado `tools/notes.ts` (as tools `notes_*` viraram o plugin `notes`) |
-| shared | garante o submodule `shared` (clone de `opencode-shared`) + `npm install` + `npm link`, e linka `@hitalloexiled/opencode-shared` em cada plugin (a working tree local no lugar do pacote por git) |
+| shared | garante o submodule `shared` (clone de `opencode-shared`) + `npm install` + `npm link`, e linka `opencode-shared` em cada plugin (a working tree local no lugar do pacote por git) |
 | sandbox | daemon docker → CLI `opencode-sb` → guard de firewall → imagens/rede → self-test → tarefa de fumaça |
 | verificação | `node:sqlite` (FTS5) no runtime, presença do banco, estado do sandbox, PATH |
 

@@ -188,7 +188,7 @@ build_memory_gui() {
   fi
 }
 
-SHARED_PKG="@hitalloexiled/opencode-shared"
+SHARED_PKG="opencode-shared"
 
 # The shared GUI kit is vendored as the `shared/` submodule and consumed by the
 # plugins as the package @hitalloexiled/opencode-shared. dist/ is committed;
