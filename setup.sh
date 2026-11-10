@@ -188,6 +188,74 @@ build_memory_gui() {
   fi
 }
 
+SHARED_PKG="@hitalloexiled/opencode-shared"
+
+# The shared GUI kit is vendored as the `shared/` submodule and consumed by the
+# plugins as the package @hitalloexiled/opencode-shared. dist/ is committed;
+# build it only when missing.
+ensure_shared() {
+  if [ ! -f "$ROOT/shared/package.json" ]; then
+    if git -C "$ROOT" submodule update --init shared >/dev/null 2>&1; then
+      say "  submodule: shared inicializado (opencode-shared)"
+    else
+      warn "submodule shared ausente e git submodule update falhou (offline?); os GUIs vao falhar"
+      return 1
+    fi
+  fi
+  if [ ! -d "$ROOT/shared/node_modules" ] \
+     || [ "$ROOT/shared/package-lock.json" -nt "$ROOT/shared/node_modules/.package-lock.json" ]; then
+    if command -v npm >/dev/null 2>&1 \
+       && (cd "$ROOT/shared" && npm install --legacy-peer-deps --no-audit --no-fund --silent) >/dev/null 2>&1; then
+      say "  deps   : shared instalado via npm"
+    else
+      warn "shared: nao consegui instalar as dependencias (npm ausente/offline?)"
+    fi
+  else
+    say "  deps   : shared ja presente em node_modules/"
+  fi
+  if [ ! -f "$ROOT/shared/dist/gui/index.js" ]; then
+    if (cd "$ROOT/shared" && npm run build --silent) >/dev/null 2>&1; then
+      say "  build  : shared compilado (dist/gui/index.js)"
+    else
+      warn "shared: dist ausente e npm run build falhou"
+    fi
+  fi
+}
+
+# Local development uses the working tree, not the package fetched by git:
+# register shared/ once and link it into every plugin's node_modules.
+link_shared() {
+  local d="$ROOT/shared"
+  [ -f "$d/package.json" ] || return 0
+  if ! command -v npm >/dev/null 2>&1; then
+    warn "shared: npm ausente — link local nao configurado"
+    return 0
+  fi
+
+  if (cd "$d" && npm link --legacy-peer-deps --silent) >/dev/null 2>&1; then
+    say "  link   : shared registrado (npm link)"
+  else
+    warn "shared: npm link falhou; usando symlink direto nos plugins"
+  fi
+
+  local p dst
+  for p in "$ROOT"/plugins/*/; do
+    [ -f "$p/package.json" ] || continue
+    dst="$p/node_modules/$SHARED_PKG"
+    mkdir -p "$(dirname "$dst")" 2>/dev/null || true
+    if (cd "$p" && npm link "$SHARED_PKG" --legacy-peer-deps --silent) >/dev/null 2>&1 && [ -e "$dst" ]; then
+      say "  link   : $(basename "$p") -> $SHARED_PKG"
+      continue
+    fi
+    rm -rf "$dst" 2>/dev/null || true
+    if ln -sfn "$d" "$dst" 2>/dev/null; then
+      say "  link   : $(basename "$p") -> shared/ (symlink)"
+    else
+      warn "shared: nao consegui linkar em $(basename "$p")"
+    fi
+  done
+}
+
 install_plugin_deps() {
   # A fresh clone (git submodule) arrives without node_modules: install the
   # npm deps inside every plugin that declares its own package.json. A newer
@@ -493,6 +561,21 @@ cmd_check() {
   for f in "$CONFIG_DIR/plugins/memory" "$CONFIG_DIR/plugins/notes" "$CONFIG_DIR/plugins/plans" "$CONFIG_DIR/plugins/stats"; do
     if [ -e "$f" ]; then say "  plugin  : $f"; else say "  plugin  : (ausente) $f"; failed=1; fi
   done
+  if [ -f "$ROOT/shared/dist/gui/index.js" ]; then
+    say "  shared  : dist/gui/index.js"
+  else
+    say "  shared  : (ausente) dist/gui/index.js"; failed=1
+  fi
+  local p link
+  for p in "$ROOT"/plugins/*/; do
+    [ -f "$p/package.json" ] || continue
+    link="$p/node_modules/$SHARED_PKG"
+    if [ -e "$link" ]; then
+      say "  link    : $(basename "${p%/}") -> $SHARED_PKG"
+    else
+      say "  link    : (ausente) $(basename "${p%/}")"; failed=1
+    fi
+  done
   say "  banco   : $NEW_DB"
   say "  planos  : $PLANS_DB"
 
@@ -562,6 +645,19 @@ cmd_remove() {
   unlink_ours "$CONFIG_DIR/plugins/plans"
   unlink_ours "$CONFIG_DIR/plugins/stats"
   unlink_ours "$CONFIG_DIR/plugins/toolbelt"   # nome antigo
+
+  # Drop the local shared link (node_modules is generated; never touch
+  # package.json) and the global npm link.
+  local p link
+  for p in "$ROOT"/plugins/*/; do
+    [ -f "$p/package.json" ] || continue
+    link="$p/node_modules/$SHARED_PKG"
+    rm -rf "$link" 2>/dev/null || true
+  done
+  if command -v npm >/dev/null 2>&1; then
+    npm unlink -g "$SHARED_PKG" >/dev/null 2>&1 || true
+  fi
+  say "shared: links locais removidos (working tree preservada)"
   say ""
   say "banco preservado em: $NEW_DB"
   say "planos preservados em: $PLANS_DB"
@@ -616,11 +712,13 @@ cmd_setup() {
   unlink_ours "$CONFIG_DIR/tools/notes.ts"
 
   step "5/7 plugins (memory + notes + plans + stats)"
+  ensure_shared
   ensure_memory_plugin
   ensure_notes_plugin
   ensure_plans_plugin
   ensure_stats_plugin
   install_plugin_deps
+  link_shared
   build_plans_gui
   build_memory_gui
   build_stats_gui
