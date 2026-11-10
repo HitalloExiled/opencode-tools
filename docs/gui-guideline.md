@@ -173,8 +173,8 @@ inline no fim, **sem** descartar o que já carregou.
   tela menos 48px. Ignorar eventos com `alt/ctrl/meta`, com `defaultPrevented`
   ou com alvo editável (`input`, `textarea`, `select`, `contenteditable`,
   `role=textbox`). `preventDefault` só quando o container rola.
-- Botões com `smooth`; teclas instantâneas; `prefers-reduced-motion: reduce`
-  desliga a animação.
+- Botões e teclas rolam suave (`scroll-behavior: smooth` + `behavior: "smooth"`).
+  A rolagem é sempre animada; `prefers-reduced-motion` desliga só pulsos/loops.
 
 ## 12. Overlays e feedback
 
