@@ -56,7 +56,7 @@ hex cru fora das séries de gráfico declaradas no root do painel.
 | Corpo | `12.5px` |
 | Meta | `11px` muted |
 | Micro/rótulo caps | `10px / 600`, `letter-spacing .05em`, faint |
-| Espaço | 4 / 6 / 8 / 10 / 12 (cartão 8, ações 6, seções 10–12) |
+| Espaço | 4 / 6 / 8 / 10 / 12 (cartões 10, ações 6, seções 10–12) |
 | Raio | cartão 8 · controle 6 · interno 4 · pill 999 · overlay 8 |
 | Altura de controle | 24 small · 28 normal · 32 large |
 | Padding de cartão | `9–10px 10–12px` |
@@ -97,7 +97,7 @@ ações (ghost small)`. Sem título duplicado no corpo.
 .<p>-card:hover { border-color: var(--v2-border-border-strong); } /* só se clicável */
 ```
 
-Lista em coluna com `gap: 8px`. Grupo com cabeçalho em caps 10.5/600 muted.
+Lista de cartões usa `.os-list` do shared (`display: flex; flex-direction: column; gap: 10px`). Grupo com cabeçalho em caps 10.5/600 muted.
 
 ## 7. Chips
 
