@@ -177,6 +177,7 @@ inline no fim, **sem** descartar o que já carregou.
   tela menos 48px. Ignorar eventos com `alt/ctrl/meta`, com `defaultPrevented`
   ou com alvo editável (`input`, `textarea`, `select`, `contenteditable`,
   `role=textbox`). `preventDefault` só quando o container rola.
+- Reset programático (query/filtro/sessão) usa `nav.reset()` — **sem mover o foco**; só o clique nos botões `toTop`/`toBottom` foca o container.
 - Botões e teclas rolam suave (`scroll-behavior: smooth` + `behavior: "smooth"`).
   A rolagem é sempre animada; `prefers-reduced-motion` desliga só pulsos/loops.
 
