@@ -99,6 +99,8 @@ ações (ghost small)`. Sem título duplicado no corpo.
   background-image: linear-gradient(var(--v2-overlay-simple-overlay-hover), var(--v2-overlay-simple-overlay-hover));
 }
 /* a camada compõe sobre o fundo do cartão; nunca substitua o background */
+/* card expansível: o overlay de hover vai no header (o alvo do clique), não no
+   conteúdo; o corpo expandido usa a superfície interna `--v2-background-bg-layer-01`. */
 ```
 
 Lista de cartões usa `.os-list` do shared (`display: flex; flex-direction: column; gap: 10px`). Grupo com cabeçalho em caps 10.5/600 muted.
