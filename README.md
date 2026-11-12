@@ -458,6 +458,9 @@ arquivo e 5 arquivos "outros"; caminhos fora do projeto são recusados. Não há
 formatter, rename, code actions nem transporte TCP. Servers herdam o ambiente e
 os privilégios do OpenCode — configure só comandos confiáveis.
 
+A lista completa dos 34 servers built-in, com o comando de instalação de cada
+um, está em [`plugins/lsp/README.md`](plugins/lsp/README.md#installing-language-servers).
+
 ## Desenvolvimento
 
 ```bash
