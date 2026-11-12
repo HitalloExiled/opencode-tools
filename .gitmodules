@@ -13,6 +13,10 @@
 [submodule "plugins/stats"]
 	path = plugins/stats
 	url = git@github.com:HitalloExiled/opencode-stats.git
+[submodule "plugins/lsp"]
+	path = plugins/lsp
+	url = git@github.com:HitalloExiled/opencode-lsp.git
+	branch = main
 [submodule "shared"]
 	path = shared
 	url = git@github.com:HitalloExiled/opencode-shared.git

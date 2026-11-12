@@ -16,6 +16,7 @@ vendored in — the four plugins plus the shared GUI library:
 | `plugins/notes` | [opencode-notes](https://github.com/HitalloExiled/opencode-notes) | `notes.*` tools + notes skill + desktop side-panel GUI + `<notes-context>` session injection, over `notes.db` |
 | `plugins/plans` | [opencode-plans](https://github.com/HitalloExiled/opencode-plans) | `plans.*` tools + desktop side-panel GUI, over a dedicated `plans.db` |
 | `plugins/stats` | [opencode-stats](https://github.com/HitalloExiled/opencode-stats) | statistics side panel (tok/s gauge + history + tools/reasoning) and the session system-prompt viewer, captured server-side |
+| `plugins/lsp` | [opencode-lsp](https://github.com/HitalloExiled/opencode-lsp) | `lsp.*` navigation tools (definition, references, hover, symbols, implementations, calls) and error diagnostics appended to file edits, over the V1-shaped `lsp` config block |
 | `shared` | [opencode-shared](https://github.com/HitalloExiled/opencode-shared) | `opencode-shared/gui`: scroll nav (infinite scroll + Home/End/PageUp/PageDown), states, status chip, i18n factory, panel registration |
 
 Consequences:
@@ -30,7 +31,7 @@ Consequences:
   stores that SHA (the "pointer"), not the files.
 - **Never edit submodule files and commit them from the parent.** Changes to
   `plugins/memory/**`, `plugins/notes/**`, `plugins/plans/**`,
-  `plugins/stats/**` or `shared/**` must be committed **inside
+  `plugins/stats/**`, `plugins/lsp/**` or `shared/**` must be committed **inside
   the submodule repo first**, then the parent pointer is bumped. Doing it backwards
   produces a dirty/invalid submodule state.
 - **The parent's typecheck/test only see submodule code once it is
@@ -55,8 +56,8 @@ For a change inside `shared`:
 3. Back in `opencode-tools`: `git add shared plugins/<name>` → commit the
    pointers → `git push origin main`.
 
-For a change inside `plugins/notes`, `plugins/memory`, `plugins/plans` or
-`plugins/stats`:
+For a change inside `plugins/notes`, `plugins/memory`, `plugins/plans`,
+`plugins/stats` or `plugins/lsp`:
 
 1. `cd plugins/<name>` → `git add … && git commit`
 2. `git push origin main` (the submodule's own origin)
@@ -80,7 +81,8 @@ opencode-tools/
 │   ├── memory/         # SUBMODULE → opencode-memory
 │   ├── notes/          # SUBMODULE → opencode-notes (its own AGENTS.md)
 │   ├── plans/          # SUBMODULE → opencode-plans (its own AGENTS.md)
-│   └── stats/          # SUBMODULE → opencode-stats (its own AGENTS.md)
+│   ├── stats/          # SUBMODULE → opencode-stats (its own AGENTS.md)
+│   └── lsp/            # SUBMODULE → opencode-lsp (its own AGENTS.md)
 ├── shared/             # SUBMODULE → opencode-shared (opencode-shared)
 ├── sandbox/            # Docker sandbox: opencode-sb CLI, run.sh, Dockerfile, proxy/
 └── README.md
@@ -96,7 +98,7 @@ Run from the `opencode-tools/` root:
 ```bash
 bun install                                  # root deps (@opencode/* v2, typescript, zod, bun types)
 bun run typecheck                            # tsc --noEmit over tools/** + plugins/**/*.ts
-bun run test                                 # = bun test plugins/memory/test plugins/notes/test plugins/plans/test plugins/stats/test
+bun run test                                 # = bun test plugins/memory/test plugins/notes/test plugins/plans/test plugins/stats/test plugins/lsp/test
 ```
 
 Notes on scope:
@@ -114,6 +116,8 @@ Notes on scope:
     (full guide: **`plugins/plans/AGENTS.md`**)
   - **stats** → `plugins/stats`: `bun run gui:build`, `bun run typecheck:gui`
     (full guide: **`plugins/stats/AGENTS.md`**)
+  - **lsp** → `plugins/lsp`: `bun run typecheck`, `bun test test`
+    (full guide: **`plugins/lsp/AGENTS.md`**)
   - **memory** → `plugins/memory`: `bun run typecheck`, `bun run typecheck:gui`,
     `bun run gui:build`, `bun test test` (product docs:
     `plugins/memory/README.md`)
@@ -125,6 +129,7 @@ Notes on scope:
 | `plugins/notes` | **`plugins/notes/AGENTS.md`** — build, the two typechecks, `bun test` from the parent, hot-reload dev loop, schema v9, `ctx.*` cheatsheet, git workflow |
 | `plugins/plans` | **`plugins/plans/AGENTS.md`** — build, the two typechecks, `bun test` from the parent, hot-reload dev loop, plans schema, `ctx.*` cheatsheet, git workflow |
 | `plugins/stats` | **`plugins/stats/AGENTS.md`** — server capture + GUI, the two typechecks, `bun test` from the parent, RPC, prompt classification, git workflow |
+| `plugins/lsp` | **`plugins/lsp/AGENTS.md`** — LSP client/pool, config reader, fake-server tests, project boundary, git workflow |
 | `plugins/memory` | `plugins/memory/README.md` — summaries, injection, cross-session search |
 | `shared` | **`shared/AGENTS.md`** — the shared GUI kit, the `dist/` rule, the three-level commit protocol; `shared/README.md` for the API |
 
@@ -150,12 +155,13 @@ and relative imports into `shared/`.
 and, for the plugins, it:
 
 - `git submodule update --init plugins/memory`, `plugins/notes`,
-  `plugins/plans`, `plugins/stats` and `shared` (skipped if already present;
-  warns if offline).
+  `plugins/plans`, `plugins/stats`, `plugins/lsp` and `shared` (skipped if
+  already present; warns if offline).
 - Symlinks `plugins/memory` → `~/.config/opencode/plugins/memory`,
   `plugins/notes` → `~/.config/opencode/plugins/notes`,
-  `plugins/plans` → `~/.config/opencode/plugins/plans` and
-  `plugins/stats` → `~/.config/opencode/plugins/stats`.
+  `plugins/plans` → `~/.config/opencode/plugins/plans`,
+  `plugins/stats` → `~/.config/opencode/plugins/stats` and
+  `plugins/lsp` → `~/.config/opencode/plugins/lsp`.
 - Symlinks the notes skill: `plugins/notes/skills/notes/SKILL.md` →
   `~/.config/opencode/skills/notes/SKILL.md`.
 - Runs `npm install --legacy-peer-deps` inside each plugin and `shared` (fresh

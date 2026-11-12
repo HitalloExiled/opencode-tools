@@ -6,7 +6,7 @@
   "description": "Tools e skills do agente + bootstrap de maquina (memoria em SQLite, sandbox Docker).",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun test plugins/memory/test plugins/notes/test plugins/plans/test plugins/stats/test",
+    "test": "bun test plugins/memory/test plugins/notes/test plugins/plans/test plugins/stats/test plugins/lsp/test",
     "lint:gui": "bash scripts/gui-lint.sh"
   },
   "devDependencies": {

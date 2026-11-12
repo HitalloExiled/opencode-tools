@@ -3,7 +3,7 @@
 Tools e skills do agente, mais o **bootstrap de máquina** que os liga ao
 OpenCode.
 
-Cinco subsistemas:
+Seis subsistemas:
 
 - **`notes`** — memória de longa duração (SQLite + FTS5 opcional), exposta
   pelo plugin `plugins/notes` (tools `notes.*` no Code Mode; nomes efetivos
@@ -21,6 +21,9 @@ Cinco subsistemas:
 - **`memory` (plugin)** — captura resumos de compactação, injeta o
   estado do repo e o handoff da sessão anterior, e permite busca cross-sessão
   em resumos e conversas passadas. Veja [Plugin: memory](#plugin-memory).
+- **`lsp`** — navegação e diagnósticos de language server (a V2 não tem
+  runtime de LSP): tools `lsp.*` e erros anexados a edições de arquivo, lendo o
+  bloco `lsp` da config da V1. Veja [Plugin: lsp](#plugin-lsp).
 
 O conteúdo (`tools/`, `skills/`, `memory/`, `sandbox/`, `plugins/`) é genérico;
 o acoplamento com o OpenCode vive só no `setup.sh`. Trocar de harness =
@@ -37,7 +40,8 @@ opencode-tools/
 │   ├── memory/          # plugin OpenCode V2 (SUBMODULE → opencode-memory): resumos, injeção, busca
 │   ├── notes/           # plugin OpenCode V2 + skill + painel desktop (SUBMODULE → opencode-notes): tools notes.* direto no SQLite
 │   ├── plans/           # plugin OpenCode V2 + painel Planos (SUBMODULE → opencode-plans): tools plans.* + plans.db
-│   └── stats/           # plugin OpenCode V2 + painel Estatísticas/System prompt (SUBMODULE → opencode-stats)
+│   ├── stats/           # plugin OpenCode V2 + painel Estatísticas/System prompt (SUBMODULE → opencode-stats)
+│   └── lsp/             # plugin OpenCode V2 (SUBMODULE → opencode-lsp): tools lsp.* + diagnósticos em edições
 ├── shared/              # SUBMODULE → opencode-shared: kit de GUI comum (opencode-shared/gui)
 ├── docs/
 │   └── gui-guideline.md # contrato visual/comportamental dos painéis laterais
@@ -55,11 +59,12 @@ opencode-tools/
 
 ## Setup
 
-Os plugins `plugins/memory`, `plugins/notes`, `plugins/plans` e `plugins/stats` são **submodules** dos repos
+Os plugins `plugins/memory`, `plugins/notes`, `plugins/plans`, `plugins/stats` e `plugins/lsp` são **submodules** dos repos
 standalone [**opencode-memory**](https://github.com/HitalloExiled/opencode-memory),
 [**opencode-notes**](https://github.com/HitalloExiled/opencode-notes),
-[**opencode-plans**](https://github.com/HitalloExiled/opencode-plans) e
-[**opencode-stats**](https://github.com/HitalloExiled/opencode-stats),
+[**opencode-plans**](https://github.com/HitalloExiled/opencode-plans),
+[**opencode-stats**](https://github.com/HitalloExiled/opencode-stats) e
+[**opencode-lsp**](https://github.com/HitalloExiled/opencode-lsp),
 respectivamente. O código de GUI comum aos painéis mora em
 [**opencode-shared**](https://github.com/HitalloExiled/opencode-shared)
 (submodule `shared/`), consumido como o pacote `opencode-shared`:
@@ -69,7 +74,7 @@ git clone --recurse-submodules git@github.com:HitalloExiled/opencode-tools.git
 cd opencode-tools
 ```
 
-(ou, num clone já feito: `git submodule update --init plugins/memory plugins/notes plugins/plans plugins/stats shared` — o
+(ou, num clone já feito: `git submodule update --init plugins/memory plugins/notes plugins/plans plugins/stats plugins/lsp shared` — o
 `./setup.sh` faz isso sozinho quando um submodule está vazio.)
 
 O contrato visual e de comportamento das GUIs está em
@@ -93,7 +98,7 @@ O que o `setup.sh` faz, em ordem:
 | memória | migra o banco legado, se existir; remove o symlink antigo do CLI `notes` |
 | skills | symlink `skills/<id>/SKILL.md` → `~/.config/opencode/skills/<id>/SKILL.md` (o skill `notes` vem do submodule `plugins/notes/skills/notes` e é linkado na etapa de plugins) |
 | tools | symlink `tools/*.ts` → `~/.config/opencode/tools/` |
-| plugins `memory` + `notes` + `plans` + `stats` | garante os submodules `plugins/memory`, `plugins/notes`, `plugins/plans` e `plugins/stats` inicializados (clones de `opencode-memory`, `opencode-notes`, `opencode-plans` e `opencode-stats`) + symlinks → `~/.config/opencode/plugins/{memory,notes,plans,stats}` + `npm install` dentro de cada plugin com `package.json`; compila o GUI de `plans`, `memory` e `stats`; remove o link legado `tools/notes.ts` (as tools `notes_*` viraram o plugin `notes`) |
+| plugins `memory` + `notes` + `plans` + `stats` + `lsp` | garante os submodules `plugins/memory`, `plugins/notes`, `plugins/plans`, `plugins/stats` e `plugins/lsp` inicializados (clones de `opencode-memory`, `opencode-notes`, `opencode-plans`, `opencode-stats` e `opencode-lsp`) + symlinks → `~/.config/opencode/plugins/{memory,notes,plans,stats,lsp}` + `npm install` dentro de cada plugin com `package.json`; compila o GUI de `plans`, `memory` e `stats`; remove o link legado `tools/notes.ts` (as tools `notes_*` viraram o plugin `notes`) |
 | shared | garante o submodule `shared` (clone de `opencode-shared`) + `npm install` + `npm link`, e linka `opencode-shared` em cada plugin (a working tree local no lugar do pacote por git) |
 | sandbox | daemon docker → CLI `opencode-sb` → guard de firewall → imagens/rede → self-test → tarefa de fumaça |
 | verificação | `node:sqlite` (FTS5) no runtime, presença do banco, estado do sandbox, PATH |
@@ -430,20 +435,44 @@ sem biblioteca de charts. Não há banco novo nem escrita no repositório.
 Atalhos: `mod+shift+s` (Estatísticas) e `mod+shift+i` (System prompt); entradas
 também no menu do painel da sessão.
 
+## Plugin: lsp
+
+Plugin (`plugins/lsp/`, id `lsp`; vendored como **git submodule** do repo
+[opencode-lsp](https://github.com/HitalloExiled/opencode-lsp)) que devolve ao
+OpenCode V2 o comportamento de LSP que a V1 tinha — a V2 aceita o bloco `lsp`
+na config mas não sobe nenhum language server:
+
+- **Navegação:** tools `lsp.definition`, `lsp.references`, `lsp.hover`,
+  `lsp.symbols` (documento ou workspace), `lsp.implementations` e `lsp.calls`
+  (prepare/incoming/outgoing). Em sessão regular: `lsp_definition`, etc.
+- **Diagnósticos:** erros publicados pelo server são anexados ao resultado de
+  `write`, `edit`, `patch` e `apply_patch` (e em `metadata.diagnostics` para o
+  TUI). `read` apenas aquece o server.
+
+Lê o mesmo bloco `lsp` da V1 (global → projeto → `.opencode` →
+`OPENCODE_CONFIG_CONTENT` → `options` do plugin); `lsp: true` habilita os
+built-ins cujo comando default está no `PATH` e `lsp: false` desliga tudo. Um
+processo por (server, root), com warm-up no `read` e shutdown por inatividade
+(`idleShutdownMs`). Só erros por padrão (`severities` configurável), 20 por
+arquivo e 5 arquivos "outros"; caminhos fora do projeto são recusados. Não há
+formatter, rename, code actions nem transporte TCP. Servers herdam o ambiente e
+os privilégios do OpenCode — configure só comandos confiáveis.
+
 ## Desenvolvimento
 
 ```bash
-git submodule update --init plugins/memory plugins/notes plugins/plans plugins/stats   # se o clone veio sem os submodules
+git submodule update --init plugins/memory plugins/notes plugins/plans plugins/stats plugins/lsp   # se o clone veio sem os submodules
 npm install        # devDeps: typescript, @types/node, @opencode-ai/plugin, @opencode/plugin, @opencode/client, @opencode/schema, zod
 npm run typecheck  # typecheck da raiz (types do plugin resolvem do node_modules da raiz)
-npm test           # suites dos plugins (bun test, plugins/{memory,notes,plans,stats}/test)
+npm test           # suites dos plugins (bun test, plugins/{memory,notes,plans,stats,lsp}/test)
 ```
 
 Os plugins também se desenvolvem standalone nos repos
 [opencode-memory](https://github.com/HitalloExiled/opencode-memory),
 [opencode-notes](https://github.com/HitalloExiled/opencode-notes),
-[opencode-plans](https://github.com/HitalloExiled/opencode-plans) e
-[opencode-stats](https://github.com/HitalloExiled/opencode-stats)
+[opencode-plans](https://github.com/HitalloExiled/opencode-plans),
+[opencode-stats](https://github.com/HitalloExiled/opencode-stats) e
+[opencode-lsp](https://github.com/HitalloExiled/opencode-lsp)
 (`npm install && npm run typecheck` lá); mudanças neles voltam para o
 opencode-tools via `git submodule update` (commit do submodule atualizado no
 repo pai). O `setup.sh` roda `npm install` dentro de cada plugin com

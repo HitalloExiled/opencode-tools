@@ -168,6 +168,20 @@ ensure_stats_plugin() {
   link "$ROOT/plugins/stats" "$CONFIG_DIR/plugins/stats" || true
 }
 
+ensure_lsp_plugin() {
+  # The lsp navigation tools and edit diagnostics live in the opencode-lsp
+  # repo, vendored here as a git submodule (plugins/lsp). No GUI, no database.
+  if [ ! -f "$ROOT/plugins/lsp/index.ts" ]; then
+    if git -C "$ROOT" submodule update --init plugins/lsp >/dev/null 2>&1; then
+      say "  submodule: plugins/lsp inicializado (opencode-lsp)"
+    else
+      warn "submodule plugins/lsp ausente e git submodule update falhou (offline?); o plugin nao vai carregar"
+      return 1
+    fi
+  fi
+  link "$ROOT/plugins/lsp" "$CONFIG_DIR/plugins/lsp" || true
+}
+
 build_stats_gui() {
   local d="$ROOT/plugins/stats"
   [ -f "$d/package.json" ] || return 0
@@ -558,7 +572,7 @@ cmd_check() {
   for f in "$CONFIG_DIR/tools/sandbox.ts"; do
     if [ -e "$f" ]; then say "  tool    : $f"; else say "  tool    : (ausente) $f"; failed=1; fi
   done
-  for f in "$CONFIG_DIR/plugins/memory" "$CONFIG_DIR/plugins/notes" "$CONFIG_DIR/plugins/plans" "$CONFIG_DIR/plugins/stats"; do
+  for f in "$CONFIG_DIR/plugins/memory" "$CONFIG_DIR/plugins/notes" "$CONFIG_DIR/plugins/plans" "$CONFIG_DIR/plugins/stats" "$CONFIG_DIR/plugins/lsp"; do
     if [ -e "$f" ]; then say "  plugin  : $f"; else say "  plugin  : (ausente) $f"; failed=1; fi
   done
   if [ -f "$ROOT/shared/dist/gui/index.js" ]; then
@@ -644,6 +658,7 @@ cmd_remove() {
   unlink_ours "$CONFIG_DIR/plugins/notes"
   unlink_ours "$CONFIG_DIR/plugins/plans"
   unlink_ours "$CONFIG_DIR/plugins/stats"
+  unlink_ours "$CONFIG_DIR/plugins/lsp"
   unlink_ours "$CONFIG_DIR/plugins/toolbelt"   # nome antigo
 
   # Drop the local shared link (node_modules is generated; never touch
@@ -711,12 +726,13 @@ cmd_setup() {
   # notes.ts moved to plugins/notes; drop the legacy flat-tool link if present.
   unlink_ours "$CONFIG_DIR/tools/notes.ts"
 
-  step "5/7 plugins (memory + notes + plans + stats)"
+  step "5/7 plugins (memory + notes + plans + stats + lsp)"
   ensure_shared
   ensure_memory_plugin
   ensure_notes_plugin
   ensure_plans_plugin
   ensure_stats_plugin
+  ensure_lsp_plugin
   install_plugin_deps
   link_shared
   build_plans_gui
