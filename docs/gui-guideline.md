@@ -234,7 +234,32 @@ extras):
 
 Plugin novo reserva a letra nesta tabela antes de usar.
 
-## 15. i18n
+## 15. Página (`SettingsPage`)
+
+Página de largura total, sem sessão roteada, registrada com
+`ctx.add(SettingsPage, ...)`; a rota é `/settings?tab=<id>` e
+`ctx.layout.settings(<id>)` abre. É a única superfície de página inteira do
+host — a trilha do Settings fica visível.
+
+- `id` estável e específico do plugin (`plans-all`, nunca `all`); `icon` do
+  catálogo; `title` por getter (`ctx.locale.locale()` + `tStatic`), porque o
+  registry não é reativo.
+- `render()` recebe `{ target }` (entrada de busca). A página não tem sessão
+  roteada: resolva o servidor por `ctx.servers` — só `builtin`/`local`, já que
+  o banco do plugin é local.
+- Comando na paleta com `section: "navigation"` e `bind` reservado na tabela do
+  §14; `run: () => ctx.layout.settings(id)`.
+- Reuse o corpo do painel (`PlansBody({ target })`) em vez de duplicar marcação:
+  o wrapper do painel mantém `usePanel()`, a página passa `visible: () => true`
+  e storage global. `usePanel()` **lança** fora de `Panel.render`, então o
+  split é obrigatório.
+- Ações que dependem de uma sessão roteada (criar plano, mover para a sessão,
+  hint de salvar) ficam só no painel. Executar existe nos dois, mas na página o
+  alvo é a sessão dona do plano: sem `move`.
+- Largura: limite o conteúdo (`max-width` ~1080px) e dê altura própria ao corpo,
+  porque o container do Settings não tem a altura da viewport.
+
+## 16. i18n
 
 - `createI18n(en, pt)` do shared; EN é a fonte e o fallback, PT é
   `Record<keyof typeof EN, string>` (chave faltando quebra o typecheck).
@@ -245,7 +270,7 @@ Plugin novo reserva a letra nesta tabela antes de usar.
   `registerSidePanel` (que já é reativo).
 - Números/datas com `Intl` (`useI18nTag` + `formatNumber`/`formatDate`).
 
-## 16. Acessibilidade
+## 17. Acessibilidade
 
 - Todo controle só-ícone tem `label`/`aria-label` + Tooltip.
 - Todo interativo tem `:focus-visible`.
@@ -255,7 +280,7 @@ Plugin novo reserva a letra nesta tabela antes de usar.
   fizer sentido.
 - Status nunca só por cor: sempre cor + rótulo/ícone.
 
-## 17. CSS
+## 18. CSS
 
 - Uma `<style>` por plugin, todas as classes com o prefixo do painel
   (`memory-`, `notes-`, `plans-`, `stats-`, `prompt-`). Componentes do shared
@@ -265,7 +290,7 @@ Plugin novo reserva a letra nesta tabela antes de usar.
   global e vaza para o app.
 - Sem `!important`; sem inline, exceto geometria dinâmica.
 
-## 18. Código compartilhado
+## 19. Código compartilhado
 
 ```ts
 import { SHARED_CSS, createScrollNav, ScrollNav, EmptyState, ErrorBanner,
@@ -289,7 +314,7 @@ Plugin local precisa de `name` **sem escopo** (`opencode-notes`, não
 inventário do servidor e o GUI não carrega. Por isso o pacote compartilhado
 também é `opencode-shared`. Revisar se o host passar a aceitar nomes escopados.
 
-## 19. Protocolo de commit (três níveis)
+## 20. Protocolo de commit (três níveis)
 
 1. `shared`: commit + push (+ tag quando a API muda).
 2. Cada plugin afetado: bump do SHA + lock → commit + push.
@@ -298,7 +323,7 @@ também é `opencode-shared`. Revisar se o host passar a aceitar nomes escopados
 O ponteiro `shared/` do pai e os SHAs dos plugins devem apontar para o mesmo
 commit.
 
-## 20. Checklist de PR
+## 21. Checklist de PR
 
 - [ ] Cores só de tokens existentes; status com `--v2-state-*`.
 - [ ] Controles do host; nenhuma ação de texto em `<button>` cru.

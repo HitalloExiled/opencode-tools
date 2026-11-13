@@ -189,10 +189,11 @@ guard. Risky/uncertain work is delegated to a disposable container there. See
 ## Conventions / hard rules
 
 - **UI copy is PT-BR; code is English.**
-- **Every user-facing message — UI copy, toasts and synthetic/session
-  messages — must exist in PT-BR and EN-US, with EN-US as the fallback.** Code
-  and identifiers stay English. Never hardcode a UI or synthetic string in a
-  single language.
+- **Every message the plugin displays — UI copy, toasts and synthetic/session
+  messages — must exist in PT-BR and EN-US, with EN-US as the fallback.** This
+  covers product strings only; agent chat replies follow the user's language and
+  are not duplicated per locale. Code and identifiers stay English. Never
+  hardcode a displayed string in a single language.
 - **Never read OpenCode's `opencode.db` directly** — GUI/app data comes from the
   official `ctx.client.*` APIs only.
 - **Tool descriptions fit the Code Mode catalog budget.** The catalog truncates
