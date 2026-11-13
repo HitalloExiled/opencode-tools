@@ -256,9 +256,9 @@ fora de uma sessão, escolha entre estas superfícies:
   980×600). O host cuida de Esc, clique-fora, foco e empilhamento.
 
 **Padrão recomendado para uma tela de consulta**: pill em `session.header` +
-overlay, sem `Command` nem keybind (atalhos são decisão do usuário). O overlay precisa de
-um lugar na árvore do plugin: registre um `window.bottom` que o renderiza e
-nada enquanto fechado.
+overlay, sem `Command` nem keybind (atalhos são decisão do usuário). O overlay é
+`position: fixed` e viaja no mesmo slot item do pill — nada de segundo ponto de
+montagem.
 
 - O conteúdo do slot é renderizado uma vez: mantenha o componente **montado** e
   esconda com `display: none`, nunca desmontando. O host fecha o diálogo quando
