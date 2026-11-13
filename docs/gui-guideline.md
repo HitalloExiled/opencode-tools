@@ -243,18 +243,20 @@ fora de uma sessão, escolha entre estas superfícies:
   `ctx.layout.settings(<id>)` abre. O host **anexa depois das páginas dele**
   (não há ordem configurável); só `group: "about"` muda o grupo, e
   `page: "general" | "servers"` + `section` transforma em seção.
-- **`TitlebarItem`** — pill no topo da janela, ao lado dos pills dos outros
-  plugins. É a superfície para **gatilhos globais**: a titlebar os coloca lado a
-  lado, enquanto o `window.bottom` **empilha** um item por plugin — dois plugins
-  nunca dividem a linha lá.
+- **Slot `session.header`** — a linha de título da timeline. É onde ficam os
+  gatilhos de plugin (um pill por plugin, lado a lado, junto dos controles do
+  host); renderize nada quando `active` for false (timeline em cache). Só existe
+  com uma sessão aberta.
+- **`TitlebarItem`** — pill no topo da janela; alternativa quando o gatilho
+  precisa existir sem sessão.
 - **Slot `window.bottom`** — faixa embaixo da janela, acima dos toasts. Serve
   para conteúdo global (ou como ponto de montagem de um overlay), não para
   gatilhos que precisam ficar lado a lado.
 - **Modal** — `ctx.dialogs.open` + `ctx.ui.Dialog` (`size: "x-large"` = até
   980×600). O host cuida de Esc, clique-fora, foco e empilhamento.
 
-**Padrão recomendado para uma tela de consulta**: `TitlebarItem` + overlay,
-sem `Command` nem keybind (atalhos são decisão do usuário). O overlay precisa de
+**Padrão recomendado para uma tela de consulta**: pill em `session.header` +
+overlay, sem `Command` nem keybind (atalhos são decisão do usuário). O overlay precisa de
 um lugar na árvore do plugin: registre um `window.bottom` que o renderiza e
 nada enquanto fechado.
 
