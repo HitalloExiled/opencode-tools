@@ -257,8 +257,9 @@ fora de uma sessão, escolha entre estas superfícies:
 
 **Padrão recomendado para uma tela de consulta**: pill em `session.header` +
 overlay, sem `Command` nem keybind (atalhos são decisão do usuário). O overlay é
-`position: fixed` e viaja no mesmo slot item do pill — nada de segundo ponto de
-montagem.
+`position: fixed`, viaja no mesmo slot item do pill e **precisa de `Portal`**
+para o `document.body`: o header vive dentro de um contexto de empilhamento do
+app e o composer é desenhado acima dele (z-index e degradê cortariam o modal).
 
 - O conteúdo do slot é renderizado uma vez: mantenha o componente **montado** e
   esconda com `display: none`, nunca desmontando. O host fecha o diálogo quando
