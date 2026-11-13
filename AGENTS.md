@@ -195,6 +195,10 @@ guard. Risky/uncertain work is delegated to a disposable container there. See
   single language.
 - **Never read OpenCode's `opencode.db` directly** — GUI/app data comes from the
   official `ctx.client.*` APIs only.
+- **Tool descriptions fit the Code Mode catalog budget.** The catalog truncates
+  a description around 119 characters, so keep it ≤110 with the load-bearing
+  sentence first; parameter descriptions stay ≤6 words. Each plugin's tests
+  enforce both.
 - **No `*.db` in the repo.** Databases live on disk under
   `~/.local/share/opencode/…` and are gitignored; override the notes DB with
   `$NOTES_DB` for isolated work.
