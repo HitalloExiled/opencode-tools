@@ -308,6 +308,10 @@ app e o composer é desenhado acima dele (z-index e degradê cortariam o modal).
 
 ## 19. Código compartilhado
 
+- `MultiSelect` — combo de múltipla escolha (botão + dropdown com checkboxes e
+  busca). Usado por notes e plans; filtros são client-side e as opções vêm do
+  plugin.
+
 ```ts
 import { SHARED_CSS, createScrollNav, ScrollNav, EmptyState, ErrorBanner,
          LoadingRow, EndMarker, StatusChip, createI18n, registerSidePanel }
