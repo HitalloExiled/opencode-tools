@@ -234,30 +234,37 @@ extras):
 
 Plugin novo reserva a letra nesta tabela antes de usar.
 
-## 15. Página (`SettingsPage`)
+## 15. Superfícies globais (página, slot e modal)
 
-Página de largura total, sem sessão roteada, registrada com
-`ctx.add(SettingsPage, ...)`; a rota é `/settings?tab=<id>` e
-`ctx.layout.settings(<id>)` abre. É a única superfície de página inteira do
-host — a trilha do Settings fica visível.
+Um plugin não tem entrada na navegação principal do app. Para mostrar algo
+fora de uma sessão, escolha entre estas superfícies:
 
-- `id` estável e específico do plugin (`plans-all`, nunca `all`); `icon` do
-  catálogo; `title` por getter (`ctx.locale.locale()` + `tStatic`), porque o
-  registry não é reativo.
-- `render()` recebe `{ target }` (entrada de busca). A página não tem sessão
-  roteada: resolva o servidor por `ctx.servers` — só `builtin`/`local`, já que
-  o banco do plugin é local.
-- Comando na paleta com `section: "navigation"` e `bind` reservado na tabela do
-  §14; `run: () => ctx.layout.settings(id)`.
-- Reuse o corpo do painel (`PlansBody({ target })`) em vez de duplicar marcação:
-  o wrapper do painel mantém `usePanel()`, a página passa `visible: () => true`
-  e storage global. `usePanel()` **lança** fora de `Panel.render`, então o
-  split é obrigatório.
-- Ações que dependem de uma sessão roteada (criar plano, mover para a sessão,
-  hint de salvar) ficam só no painel. Executar existe nos dois, mas na página o
-  alvo é a sessão dona do plano: sem `move`.
-- Largura: limite o conteúdo (`max-width` ~1080px) e dê altura própria ao corpo,
-  porque o container do Settings não tem a altura da viewport.
+- **`SettingsPage`** — página inteira, rota `/settings?tab=<id>`,
+  `ctx.layout.settings(<id>)` abre. O host **anexa depois das páginas dele**
+  (não há ordem configurável); só `group: "about"` muda o grupo, e
+  `page: "general" | "servers"` + `section` transforma em seção.
+- **Slot `window.bottom`** — faixa de largura total embaixo da janela, acima
+  dos toasts, visível em qualquer tela. Bom para um **gatilho** compacto, não
+  para conteúdo longo.
+- **Modal** — `ctx.dialogs.open` + `ctx.ui.Dialog` (`size: "x-large"` = até
+  980×600). O host cuida de Esc, clique-fora, foco e empilhamento.
+
+**Padrão recomendado para uma tela de consulta**: botão no `window.bottom` +
+modal, sem `Command` nem keybind (atalhos são decisão do usuário).
+
+- O conteúdo do slot é renderizado uma vez: mantenha o componente **montado** e
+  esconda com `display: none`, nunca desmontando. O host fecha o diálogo quando
+  o dono que o abriu termina — desmontar a barra fecharia o modal na cara do
+  usuário (ex.: ao concluir o último plano).
+- Reuse o corpo do painel (`PlansBody({ target })`): o wrapper do painel mantém
+  `usePanel()` (que **lança** fora de `Panel.render`), a superfície global passa
+  `visible: () => true` e storage próprio.
+- O slot não tem sessão: resolva o servidor por `ctx.servers` (`builtin`/`local`)
+  antes de chamar RPC.
+- Dê altura própria ao corpo dentro do modal (`min(...)` com `100vh`) para o
+  scroll interno continuar funcionando; o `Dialog` já aplica padding.
+- Conte a novidade por evento (RPC `changed`), não por poll: o slot fica montado
+  a vida inteira da janela.
 
 ## 16. i18n
 
