@@ -12,7 +12,7 @@ vendored in — the four plugins plus the shared GUI library:
 
 | Path | Repo | What it is |
 |---|---|---|
-| `plugins/memory` | [opencode-memory](https://github.com/HitalloExiled/opencode-memory) | summaries, repo/session injection, cross-session search |
+| `plugins/memory` | [opencode-memory](https://github.com/HitalloExiled/opencode-memory) | summaries, session timeline, cross-session search, index maintenance |
 | `plugins/notes` | [opencode-notes](https://github.com/HitalloExiled/opencode-notes) | `notes.*` tools + notes skill + desktop side-panel GUI + `<notes-context>` session injection, over `notes.db` |
 | `plugins/plans` | [opencode-plans](https://github.com/HitalloExiled/opencode-plans) | `plans.*` tools + desktop side-panel GUI, over a dedicated `plans.db` |
 | `plugins/stats` | [opencode-stats](https://github.com/HitalloExiled/opencode-stats) | statistics side panel (tok/s gauge + history + tools/reasoning) and the session system-prompt viewer, captured server-side |
