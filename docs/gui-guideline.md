@@ -243,14 +243,20 @@ fora de uma sessão, escolha entre estas superfícies:
   `ctx.layout.settings(<id>)` abre. O host **anexa depois das páginas dele**
   (não há ordem configurável); só `group: "about"` muda o grupo, e
   `page: "general" | "servers"` + `section` transforma em seção.
-- **Slot `window.bottom`** — faixa de largura total embaixo da janela, acima
-  dos toasts, visível em qualquer tela. Bom para um **gatilho** compacto, não
-  para conteúdo longo.
+- **`TitlebarItem`** — pill no topo da janela, ao lado dos pills dos outros
+  plugins. É a superfície para **gatilhos globais**: a titlebar os coloca lado a
+  lado, enquanto o `window.bottom` **empilha** um item por plugin — dois plugins
+  nunca dividem a linha lá.
+- **Slot `window.bottom`** — faixa embaixo da janela, acima dos toasts. Serve
+  para conteúdo global (ou como ponto de montagem de um overlay), não para
+  gatilhos que precisam ficar lado a lado.
 - **Modal** — `ctx.dialogs.open` + `ctx.ui.Dialog` (`size: "x-large"` = até
   980×600). O host cuida de Esc, clique-fora, foco e empilhamento.
 
-**Padrão recomendado para uma tela de consulta**: botão no `window.bottom` +
-modal, sem `Command` nem keybind (atalhos são decisão do usuário).
+**Padrão recomendado para uma tela de consulta**: `TitlebarItem` + overlay,
+sem `Command` nem keybind (atalhos são decisão do usuário). O overlay precisa de
+um lugar na árvore do plugin: registre um `window.bottom` que o renderiza e
+nada enquanto fechado.
 
 - O conteúdo do slot é renderizado uma vez: mantenha o componente **montado** e
   esconda com `display: none`, nunca desmontando. O host fecha o diálogo quando
