@@ -36,6 +36,9 @@ opencode-tools/
 ├── setup.sh            # links + banco + sandbox (daemon, guard, imagens, smoke)
 ├── tools/
 │   └── sandbox.ts
+├── agents/
+│   ├── Senior.md        # engenheiro sênior: diagnostica/propõe, não assume o teclado
+│   └── Research.md      # pesquisa web com relatório consolidado
 ├── plugins/
 │   ├── memory/          # plugin OpenCode V2 (SUBMODULE → opencode-memory): resumos, injeção, busca
 │   ├── notes/           # plugin OpenCode V2 + skill + painel desktop (SUBMODULE → opencode-notes): tools notes.* direto no SQLite
@@ -98,6 +101,7 @@ O que o `setup.sh` faz, em ordem:
 | memória | migra o banco legado, se existir; remove o symlink antigo do CLI `notes` |
 | skills | symlink `skills/<id>/SKILL.md` → `~/.config/opencode/skills/<id>/SKILL.md` (o skill `notes` vem do submodule `plugins/notes/skills/notes` e é linkado na etapa de plugins) |
 | tools | symlink `tools/*.ts` → `~/.config/opencode/tools/` |
+| agents | symlink `agents/*.md` → `~/.config/opencode/agents/<nome>.md`, um por arquivo (o nome exibido no seletor vem do filename) |
 | plugins `memory` + `notes` + `plans` + `stats` + `lsp` | garante os submodules `plugins/memory`, `plugins/notes`, `plugins/plans`, `plugins/stats` e `plugins/lsp` inicializados (clones de `opencode-memory`, `opencode-notes`, `opencode-plans`, `opencode-stats` e `opencode-lsp`) + symlinks → `~/.config/opencode/plugins/{memory,notes,plans,stats,lsp}` + `npm install` dentro de cada plugin com `package.json`; compila o GUI de `plans`, `memory` e `stats`; remove o link legado `tools/notes.ts` (as tools `notes_*` viraram o plugin `notes`) |
 | shared | garante o submodule `shared` (clone de `opencode-shared`) + `npm install` + `npm link`, e linka `opencode-shared` em cada plugin (a working tree local no lugar do pacote por git) |
 | sandbox | daemon docker → CLI `opencode-sb` → guard de firewall → imagens/rede → self-test → tarefa de fumaça |
@@ -167,6 +171,24 @@ aqui vai só o mapa.
 
 O canal de retorno do sandbox é a **resposta final** (texto). `/workspace/out` é
 o drop de artefatos do **usuário** — o agente host nunca lê esse diretório.
+
+## Agentes versionados
+
+Os agentes do OpenCode são markdown com frontmatter + system prompt. Ficam em
+`agents/` e o `setup.sh` linka **um arquivo por vez** em
+`~/.config/opencode/agents/`: o OpenCode deriva o nome de exibição do filename e
+só enxerga `.md` soltos no diretório de agentes, então linkar o diretório
+inteiro esconderia todos eles do seletor.
+
+| Agente | Papel |
+|---|---|
+| `Senior.md` | engenheiro sênior que não assume o teclado: lê repo, notas e memória, toma posição em vez de oferecer menu, projeta tão fundo quanto o problema pede — mas não escreve arquivo, não roda comando e não salva plano |
+| `Research.md` | pesquisa web com orçamento de passos, regra anti-loop e relatório consolidado com links clicáveis |
+
+Editar o arquivo em `agents/` altera o agente na próxima sessão (o symlink já
+aponta para a working tree). Um `Senior.md`/`Research.md` real que já exista em
+`~/.config/opencode/agents/` é movido para `*.bak-<timestamp>` na primeira
+execução do `setup.sh`, nunca apagado.
 
 ### Permissões (opcional)
 
