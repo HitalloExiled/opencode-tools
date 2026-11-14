@@ -2,7 +2,7 @@
 #
 # setup.sh — deixa esta maquina (zerada ou nao) pronta para o opencode-tools.
 #
-# Cria os links que expoem tools/skills ao OpenCode, instala as dependencias
+# Cria os links que expoem tools/skills/agents ao OpenCode, instala as dependencias
 # npm dos plugins, garante o banco de memoria, e prepara o sandbox (daemon
 # docker, guard de firewall, imagens e uma tarefa de fumaça).
 #
@@ -166,6 +166,18 @@ ensure_stats_plugin() {
     fi
   fi
   link "$ROOT/plugins/stats" "$CONFIG_DIR/plugins/stats" || true
+}
+
+ensure_agents() {
+  # Agent definitions (frontmatter + system prompt) are versioned in agents/.
+  # One symlink per file: OpenCode derives the display name from the filename,
+  # so linking the directory would hide the .md files from the agent loader.
+  mkdir -p "$CONFIG_DIR/agents" 2>/dev/null || true
+  local a
+  for a in "$ROOT"/agents/*.md; do
+    [ -f "$a" ] || continue
+    link "$a" "$CONFIG_DIR/agents/$(basename "$a")" || true
+  done
 }
 
 ensure_lsp_plugin() {
@@ -572,6 +584,12 @@ cmd_check() {
   for f in "$CONFIG_DIR/tools/sandbox.ts"; do
     if [ -e "$f" ]; then say "  tool    : $f"; else say "  tool    : (ausente) $f"; failed=1; fi
   done
+  local a
+  for a in "$ROOT"/agents/*.md; do
+    [ -f "$a" ] || continue
+    f="$CONFIG_DIR/agents/$(basename "$a")"
+    if [ -e "$f" ]; then say "  agent   : $f"; else say "  agent   : (ausente) $f"; failed=1; fi
+  done
   for f in "$CONFIG_DIR/plugins/memory" "$CONFIG_DIR/plugins/notes" "$CONFIG_DIR/plugins/plans" "$CONFIG_DIR/plugins/stats" "$CONFIG_DIR/plugins/lsp"; do
     if [ -e "$f" ]; then say "  plugin  : $f"; else say "  plugin  : (ausente) $f"; failed=1; fi
   done
@@ -650,6 +668,11 @@ cmd_remove() {
   done
   # notes.ts moved to plugins/notes; drop the legacy flat-tool link too.
   unlink_ours "$CONFIG_DIR/tools/notes.ts"
+  local a
+  for a in "$ROOT"/agents/*.md; do
+    [ -f "$a" ] || continue
+    unlink_ours "$CONFIG_DIR/agents/$(basename "$a")"
+  done
   local name
   for name in opencode-sandboxed opencode-sb; do
     unlink_ours "$BIN_DIR/$name"
@@ -700,15 +723,15 @@ cmd_setup() {
   say "bin:    $BIN_DIR"
   say "config: $CONFIG_DIR"
 
-  step "1/7 plugin (@opencode-ai/plugin)"
+  step "1/8 plugin (@opencode-ai/plugin)"
   ensure_plugin
 
-  step "2/7 memoria"
+  step "2/8 memoria"
   cleanup_legacy_bin
   cleanup_notes_cli
   migrate_db
 
-  step "3/7 skills"
+  step "3/8 skills"
   local name
   cleanup_legacy_skill
   for d in "$ROOT"/skills/*/; do
@@ -717,7 +740,7 @@ cmd_setup() {
     link "${d%/}/SKILL.md" "$CONFIG_DIR/skills/$name/SKILL.md" || true
   done
 
-  step "4/7 tools"
+  step "4/8 tools"
   mkdir -p "$CONFIG_DIR/tools" 2>/dev/null || true
   for t in "$ROOT"/tools/*.ts; do
     [ -f "$t" ] || continue
@@ -726,7 +749,10 @@ cmd_setup() {
   # notes.ts moved to plugins/notes; drop the legacy flat-tool link if present.
   unlink_ours "$CONFIG_DIR/tools/notes.ts"
 
-  step "5/7 plugins (memory + notes + plans + stats + lsp)"
+  step "5/8 agents"
+  ensure_agents
+
+  step "6/8 plugins (memory + notes + plans + stats + lsp)"
   ensure_shared
   ensure_memory_plugin
   ensure_notes_plugin
@@ -741,7 +767,7 @@ cmd_setup() {
 
   local sandbox_failed=0
   if [ "$SANDBOX" = 1 ]; then
-    step "6/7 sandbox"
+    step "7/8 sandbox"
     warn_selinux_noise
     ensure_docker || sandbox_failed=1
     if [ "$sandbox_failed" = 0 ]; then
@@ -761,11 +787,11 @@ cmd_setup() {
     fi
     sandbox_down
   else
-    step "6/7 sandbox (pulado)"
+    step "7/8 sandbox (pulado)"
     say "  use ./setup.sh sem --no-sandbox para preparar o sandbox"
   fi
 
-  step "7/7 verificacao"
+  step "8/8 verificacao"
   mkdir -p "$MEM_DIR" 2>/dev/null || true
   mkdir -p "$PLANS_DIR" 2>/dev/null || true
   if [ -f "$NEW_DB" ]; then

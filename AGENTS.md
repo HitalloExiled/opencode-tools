@@ -77,6 +77,7 @@ opencode-tools/
 │   └── sandbox.ts      # sandbox_* tools (delegated risky work)
 ├── skills/
 │   └── sandbox/SKILL.md
+├── agents/             # versioned agent definitions (Senior.md, Research.md)
 ├── plugins/
 │   ├── memory/         # SUBMODULE → opencode-memory
 │   ├── notes/          # SUBMODULE → opencode-notes (its own AGENTS.md)
@@ -88,7 +89,7 @@ opencode-tools/
 └── README.md
 ```
 
-The content (`tools/`, `skills/`, `sandbox/`, `plugins/`, `shared/`) is
+The content (`tools/`, `skills/`, `agents/`, `sandbox/`, `plugins/`, `shared/`) is
 harness-agnostic; all OpenCode wiring lives in `setup.sh`.
 
 ## Parent-level build / typecheck / test
