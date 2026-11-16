@@ -52,7 +52,7 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
 
 - [ ] **US-32 (Should · s7)** — Como usuário, quero ver os itens como um **quadro por status** (kanban), para triar e mover trabalho com uma olhada.
   - Aceite: alternância **Lista | Quadro** no overlay; colunas `backlog`, `ready`, `doing`, `blocked`, `done` (`dropped` só por filtro).
-  - Aceite: arrastar um card entre colunas muda status **e** posição (rank no índice de destino); um menu **“Mover para…”** faz o mesmo sem mouse (teclado/acessibilidade).
+  - Aceite: arrastar um card entre colunas muda status **e** posição (rank no índice de destino); o caminho por teclado é abrir o card (Enter) e usar o menu de status do detalhe.
   - Aceite: no modo quadro o overlay alarga (até ~1280px); busca, pai e origem continuam valendo.
   - Aceite: o quadro é **por projeto** (seletor no overlay); sem swimlanes de todos os projetos.
   - Aceite: cada coluna mostra no máximo 20 cards (por rank) e oferece “ver todos”, que abre a lista filtrada por aquele status.

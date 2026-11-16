@@ -1,6 +1,6 @@
 # Work items
 
-Camada de **intenção durável** do plugin de planos: work items (necessidade) ligados a planos (execução), atravessando sessões e vários repositórios.
+Camada de **intenção durável** do plugin de planos: work items (necessidade) ligados a planos (execução), agrupados em **iniciativas** (N repositórios), atravessando sessões.
 
 ## Como ler
 

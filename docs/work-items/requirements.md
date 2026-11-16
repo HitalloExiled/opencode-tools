@@ -10,9 +10,9 @@ Projetos duram semanas e atravessam vários repositórios. O plano atual cobre *
 
 ## Escopo
 
-**Dentro:** projeto do usuário (N workspaces), work item (necessidade), vínculo plano↔item, planejar/executar, ferramentas e contexto do agente, superfície global do Trabalho.
+**Dentro:** iniciativa do usuário (N repositórios), work item (necessidade), vínculo plano↔item, planejar/executar, ferramentas e contexto do agente, superfície global do Trabalho.
 
-**Fases:** F1–F3 (work items) e **F4 (execução de projeto: grafo, branches, paralelismo)** — plano próprio, depende das fases anteriores.
+**Fases:** F1–F3 (work items) e **F4 (execução da iniciativa: grafo, branches, paralelismo)** — plano próprio, depende das fases anteriores.
 
 **Fora (v1):** swimlanes, WIP limits, drag de colunas, assignees, labels, sprints, milestones, comentários/feed, sync com GitHub/Jira, merge de projetos, dependências entre projetos, auto-merge na base. Ver `user-stories.md` → “Fora de escopo”.
 
@@ -22,8 +22,8 @@ Projetos duram semanas e atravessam vários repositórios. O plano atual cobre *
 
 ### Projeto (contêiner do usuário)
 
-- **RF-01** — O plugin deve manter **projetos do usuário** que agrupam N workspaces, independentes do projeto derivado do git pelo OpenCode.
-- **RF-02** — Um work item pertence a exatamente um projeto; um workspace (diretório) pertence a no máximo um projeto.
+- **RF-01** — O plugin deve manter **iniciativas** que agrupam N repositórios, independentes do projeto derivado do git pelo OpenCode.
+- **RF-02** — Um work item pertence a exatamente uma iniciativa; um repositório (diretório) pertence a no máximo uma iniciativa.
 - **RF-03** — O plugin deve resolver o projeto de uma sessão pelo diretório: match exato; senão o ancestral mais próximo; senão “sem projeto”.
 - **RF-04** — Sem projeto resolvido, a primeira escrita deve criar o projeto a partir do workspace (idempotente) ou falhar com instrução explícita, conforme a decisão registrada.
 - **RF-05** — O usuário deve poder renomear o projeto e adicionar/remover workspaces, mantendo ids e vínculos.
