@@ -42,7 +42,7 @@ Projetos duram semanas e atravessam vários repositórios. O plano atual cobre *
 
 ### Planejar
 
-- **RF-17** — Cada item deve ter a ação **Planejar**, que cria uma sessão nova no workspace do item (não no diretório da sessão atual).
+- **RF-17** — Cada item deve ter a ação **Planejar**, que cria uma sessão nova no workspace do item (não no diretório da sessão atual) e **abre o chat nela**, sem modal, diálogo ou overlay intermediário.
 - **RF-18** — A sessão de planejamento deve usar o agente de planejamento do fluxo ativo (`plan` no nativo, `planner` no dedicado).
 - **RF-19** — A sessão deve nascer com um prompt-semente que identifica o item, afirma que o corpo é a necessidade (não a implementação) e exige o vínculo do plano.
 - **RF-20** — O plano salvo com `workItemID` fica vinculado ao item; o item lista todos os planos, mais recente primeiro.

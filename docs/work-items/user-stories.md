@@ -95,7 +95,8 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
 
 - [ ] **US-16 (Must · s7)** — Como usuário, quero um botão **Planejar** em cada item que abre uma sessão nova com o planejador no workspace certo, para decidir o como com contexto limpo.
   - Aceite: sessão criada no diretório da `location_id` do item (ou `primary`), com o agente de planejamento do fluxo (`plan`/`planner`).
-  - Aceite: a aba abre focada; o título é `Planejar: <título do item>`.
+  - Aceite: o chat da sessão criada abre focado (o app navega para ela) — **sem modal, diálogo ou overlay intermediário**.
+  - Aceite: o título é `Planejar: <título do item>`.
   - Aceite: funciona no painel e no overlay (sem sessão roteada).
   - Aceite: sempre habilitado; replanejar é permitido.
 
