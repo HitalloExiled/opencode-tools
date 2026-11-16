@@ -49,6 +49,12 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
 - [ ] **US-05 (Should · s8)** — Como usuário, quero ver todos os itens agrupados por projeto na visão global, para navegar entre iniciativas.
   - Aceite: o overlay (sem sessão) lista por projeto, depois por status; o painel mostra só o projeto resolvido.
 
+- [ ] **US-32 (Should · s7)** — Como usuário, quero ver os itens como um **quadro por status** (kanban), para triar e mover trabalho com uma olhada.
+  - Aceite: alternância **Lista | Quadro** no overlay; colunas `backlog`, `ready`, `doing`, `blocked`, `done` (`dropped` só por filtro).
+  - Aceite: arrastar um card entre colunas muda status **e** posição (rank no índice de destino); um menu **“Mover para…”** faz o mesmo sem mouse (teclado/acessibilidade).
+  - Aceite: no modo quadro o overlay alarga (até ~1280px); busca, pai e origem continuam valendo.
+  - Aceite: o quadro é **por projeto** (seletor no overlay); sem swimlanes de todos os projetos.
+
 - [ ] **US-06 (Could · v1.1)** — Como usuário, quero mover um item para outro projeto, para reclassificar sem recriar.
   - Fora do v1: mover exige revisar dependências e o plano vinculado.
 
@@ -169,7 +175,7 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
 
 ## Fora de escopo (v1)
 
-- Board com drag-and-drop, assignees, labels, sprints, milestones.
+- Swimlanes, WIP limits, drag de colunas, assignees, labels, sprints, milestones.
 - Comentários/feed de atividade (o log é a sessão; o registro é o plano).
 - Sync com GitHub Issues/Jira; importadores.
 - Merge de projetos; dependências entre projetos; permissões automáticas para os outros repos do projeto (leitura continua `external_directory`/ask).
@@ -191,7 +197,7 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
 | s4 contrato do runtime | 09, 22, 25, 26, 31 |
 | s5 e2e F1 | 01–03, 10, 18, 19, 23–26 |
 | s6 RPC + `/work` | 03, 04, 07, 14, 15 |
-| s7 painel + Planejar/Executar | 08, 10–13, 16–22, 27 |
+| s7 painel + Planejar/Executar + quadro | 08, 10–13, 16–22, 27, 32 |
 | s8 continuidade + global | 05, 21, 28 |
 | s9 docs + commits | todas (documentação) |
 | s10 stress | 01–28 (regressão) |

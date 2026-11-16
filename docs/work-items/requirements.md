@@ -12,7 +12,7 @@ Projetos duram semanas e atravessam vários repositórios. O plano atual cobre *
 
 **Dentro:** projeto do usuário (N workspaces), work item (necessidade), vínculo plano↔item, planejar/executar, ferramentas e contexto do agente, painel.
 
-**Fora (v1):** board com drag-and-drop, assignees, labels, sprints, milestones, comentários/feed, sync com GitHub/Jira, merge de projetos, dependências entre projetos. Ver `user-stories.md` → “Fora de escopo”.
+**Fora (v1):** swimlanes, WIP limits, drag de colunas, assignees, labels, sprints, milestones, comentários/feed, sync com GitHub/Jira, merge de projetos, dependências entre projetos. Ver `user-stories.md` → “Fora de escopo”.
 
 ---
 
@@ -63,6 +63,7 @@ Projetos duram semanas e atravessam vários repositórios. O plano atual cobre *
 
 - **RF-27** — Tudo vive no `plans.db` existente, com migração v3 idempotente (aditiva) e índices por projeto/status/rank.
 - **RF-28** — O comportamento do fluxo nativo e o schema v2 existente não podem regredir.
+- **RF-29** — O overlay deve oferecer uma visão de **quadro (kanban)** por status, por projeto, com arrastar-e-soltar para mudar status/posição e um caminho acessível equivalente (menu “Mover para…”).
 
 ---
 
@@ -117,6 +118,7 @@ Projetos duram semanas e atravessam vários repositórios. O plano atual cobre *
 | RF-24, RF-25 | US-23, US-24 | s2 |
 | RF-26 | US-25, US-26, US-31 | s4 |
 | RF-27 | US-29 | s1 |
+| RF-29 | US-32 | s7 |
 | RF-28 | todas | s9/s10 |
 | RNF-01…10 | US-30, US-31 | s1–s4, s9 |
 
