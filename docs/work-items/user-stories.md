@@ -22,7 +22,7 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
 ## Fases
 
 - **F1 — núcleo sem GUI (s1–s5):** schema, projeto/resolução, tools, contrato do agente, e2e de agente.
-- **F2 — superfícies (s6–s8):** RPC, painel Trabalho, continuidade.
+- **F2 — superfícies (s6–s8):** RPC, superfície global do Trabalho, continuidade.
 - **F3 — fechamento (s9–s10):** docs, commits, stress.
 - **F4 — execução de projeto (e1–e8):** grafo, worktrees/branches, dependências implícitas, fila de merge, monitor. Plano próprio, depende de F1–F3.
 
@@ -47,8 +47,8 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
   - Aceite: renomear mantém ids e vínculos; remover uma location com itens vinculados pede confirmação.
   - Aceite: a primeira location adicionada é a `primary` até eu escolher outra.
 
-- [ ] **US-05 (Should · s8)** — Como usuário, quero ver todos os itens agrupados por projeto na visão global, para navegar entre iniciativas.
-  - Aceite: o overlay (sem sessão) lista por projeto, depois por status; o painel mostra só o projeto resolvido.
+- [ ] **US-05 (Should · s8)** — Como usuário, quero ver todos os itens na superfície global, agrupados por projeto, para navegar entre iniciativas.
+  - Aceite: o overlay lista por projeto, depois por status, com filtro de projeto; o **painel da sessão é só de planos** (Sessão -> Planos; Global -> Trabalho e/ou Planos).
 
 - [ ] **US-32 (Should · s7)** — Como usuário, quero ver os itens como um **quadro por status** (kanban), para triar e mover trabalho com uma olhada.
   - Aceite: alternância **Lista | Quadro** no overlay; colunas `backlog`, `ready`, `doing`, `blocked`, `done` (`dropped` só por filtro).
@@ -67,7 +67,7 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
   - Aceite: título vazio falha com mensagem clara; nada é criado.
 
 - [ ] **US-08 (Must · s7)** — Como usuário, quero escrever e editar a necessidade em markdown no detalhe do item, para o planejador entender o que precisa existir.
-  - Aceite: criar pelo cabeçalho (“Novo item”, só título) e editar corpo/dependências no detalhe.
+  - Aceite: criar pelo cabeçalho da superfície global, com um projeto selecionado (“Novo item”, só título), e editar corpo/dependências no detalhe.
   - Aceite: o editor não tem checklist de execução nem extração de passos.
 
 - [ ] **US-09 (Must · s1/s2/s4)** — Como usuário, quero que o item guarde a necessidade e **nunca** a implementação, para o plano decidir o como.
@@ -105,7 +105,7 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
   - Aceite: sessão criada no diretório da `location_id` do item (ou `primary`), com o agente de planejamento do fluxo (`plan`/`planner`).
   - Aceite: o chat da sessão criada abre focado (o app navega para ela) — **sem modal, diálogo ou overlay intermediário**.
   - Aceite: o título é `Planejar: <título do item>`.
-  - Aceite: funciona no painel e no overlay (sem sessão roteada).
+  - Aceite: funciona na superfície global do Trabalho (overlay), sem sessão roteada.
   - Aceite: sempre habilitado; replanejar é permitido.
 
 - [ ] **US-17 (Must · s7)** — Como usuário, quero que a sessão de planejamento já nasça sabendo qual item planejar, para não repetir o contexto.
@@ -134,7 +134,7 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
 
 - [ ] **US-22 (Must · s4/s7)** — Como usuário, quero que o executor **proponha** o aceite em vez de fechar sozinho, para “done” significar algo.
   - Aceite: ao concluir sem bloqueios, o agente propõe o aceite; o status continua `doing`.
-  - Aceite: `done`/`dropped` só por ação humana (painel) ou decisão do planner.
+  - Aceite: `done`/`dropped` só por ação humana (superfície global) ou decisão do planner.
 
 ## Agente
 
@@ -225,7 +225,7 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
 - Comentários/feed de atividade (o log é a sessão; o registro é o plano).
 - Sync com GitHub Issues/Jira; importadores.
 - Merge de projetos; dependências entre projetos; permissões automáticas para os outros repos do projeto (leitura continua `external_directory`/ask).
-- Edição de item na timeline (só painel/overlay).
+- Edição de item na timeline (só na superfície global).
 - Auto-merge na base; retomada automática após restart; execução atravessando projetos; WIP por coluna.
 
 ## Perguntas abertas
@@ -244,7 +244,7 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
 | s4 contrato do runtime | 09, 22, 25, 26, 31 |
 | s5 e2e F1 | 01–03, 10, 18, 19, 23–26 |
 | s6 RPC + `/work` | 03, 04, 07, 14, 15 |
-| s7 painel + Planejar/Executar + quadro | 08, 10–13, 16–22, 27, 32 |
+| s7 superfície global + Planejar/Executar + quadro | 08, 10–13, 16–22, 27, 32 |
 | s8 continuidade + global | 05, 21, 28 |
 | s9 docs + commits | todas (documentação) |
 | s10 stress | 01–28 (regressão) |
@@ -267,4 +267,4 @@ Cada US vira um **work item** quando a feature existir (dogfooding), e cada plan
 - **Não migrar as 31 de uma vez**: criar itens só para as Must/Should da fase corrente, planejar e executar; o doc continua sendo a fonte das histórias.
 - O plano que constrói a própria feature (`plans.db`, 10 passos) fica **fora** do backlog de USs: ele é a obra, não uma necessidade do produto.
 
-Ordem sugerida: s10 concluído → criar os itens da fase corrente a partir deste doc → `Planejar` cada um → vincular os planos → acompanhar pelo painel.
+Ordem sugerida: s10 concluído → criar os itens da fase corrente a partir deste doc → `Planejar` cada um → vincular os planos → acompanhar pela superfície global do Trabalho.

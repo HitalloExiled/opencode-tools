@@ -17,7 +17,7 @@ O plano de execução vive no `plans.db` (10 passos) — este diretório não du
 
 ## Fases
 
-- **F1–F3 (work items):** projeto, necessidade, planejar/executar um item, painel e quadro. Plano no `plans.db` (10 passos).
+- **F1–F3 (work items):** projeto, necessidade, planejar/executar um item, superfície global e quadro. Plano no `plans.db` (10 passos).
 - **F4 (execução de projeto):** grafo, worktrees/branches, paralelismo, dependências implícitas, monitor. Plano próprio no `plans.db` (8 passos), depende de F1–F3: fila de merge drenada por uma sessão única.
 
 ## Estado

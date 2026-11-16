@@ -10,7 +10,7 @@ Projetos duram semanas e atravessam vários repositórios. O plano atual cobre *
 
 ## Escopo
 
-**Dentro:** projeto do usuário (N workspaces), work item (necessidade), vínculo plano↔item, planejar/executar, ferramentas e contexto do agente, painel.
+**Dentro:** projeto do usuário (N workspaces), work item (necessidade), vínculo plano↔item, planejar/executar, ferramentas e contexto do agente, superfície global do Trabalho.
 
 **Fases:** F1–F3 (work items) e **F4 (execução de projeto: grafo, branches, paralelismo)** — plano próprio, depende das fases anteriores.
 
@@ -27,7 +27,7 @@ Projetos duram semanas e atravessam vários repositórios. O plano atual cobre *
 - **RF-03** — O plugin deve resolver o projeto de uma sessão pelo diretório: match exato; senão o ancestral mais próximo; senão “sem projeto”.
 - **RF-04** — Sem projeto resolvido, a primeira escrita deve criar o projeto a partir do workspace (idempotente) ou falhar com instrução explícita, conforme a decisão registrada.
 - **RF-05** — O usuário deve poder renomear o projeto e adicionar/remover workspaces, mantendo ids e vínculos.
-- **RF-06** — A visão global deve agrupar itens por projeto; a visão do painel mostra só o projeto resolvido.
+- **RF-06** — O **Trabalho é global** (overlay): lista os itens agrupados por projeto, com filtro de projeto. O **painel da sessão é só de planos** (Sessão -> Planos). O plano é alcançável pelo item (Global -> Trabalho -> Plano) e pela aba Planos global.
 
 ### Work item (necessidade)
 
@@ -39,7 +39,7 @@ Projetos duram semanas e atravessam vários repositórios. O plano atual cobre *
 - **RF-12** — O usuário deve poder agrupar itens sob um pai (profundidade 1), sem transformar o pai em plano.
 - **RF-13** — A origem (`user`/`agent`) deve ser inferida pelo canal (tool × RPC/comando), nunca declarada pelo agente.
 - **RF-14** — Deve existir captura rápida de um item por comando, sem turno de modelo.
-- **RF-15** — O usuário deve criar (título) e editar (corpo, pai, deps) pelo painel.
+- **RF-15** — O usuário deve criar (título, no projeto selecionado) e editar (corpo, pai, deps) na superfície global do Trabalho.
 - **RF-16** — Descartar deve pedir confirmação e preservar o plano vinculado.
 
 ### Planejar
