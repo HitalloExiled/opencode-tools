@@ -1,6 +1,7 @@
 # Work items — user stories
 
 > Feature: **work items (necessidade) + planos (execução)** no `opencode-plans`.
+> Requisitos: [`requirements.md`](requirements.md) — a necessidade e o que o sistema deve fazer.
 > Este documento registra as histórias e o aceite; o plano de execução (10 passos) vive no `plans.db`.
 > Status: rascunho para revisão — 2026-11-16.
 > Convenção: `[ ]` todo · `[~]` doing · `[x]` done. Prioridade: Must (F1/F2), Should (F2), Could (v1.1).
