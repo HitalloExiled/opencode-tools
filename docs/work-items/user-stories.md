@@ -24,7 +24,7 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
 - **F1 — núcleo sem GUI (s1–s5):** schema, projeto/resolução, tools, contrato do agente, e2e de agente.
 - **F2 — superfícies (s6–s8):** RPC, painel Trabalho, continuidade.
 - **F3 — fechamento (s9–s10):** docs, commits, stress.
-- **F4 — execução de projeto (e1–e7):** grafo, worktrees/branches, dependências implícitas, monitor. Plano próprio, depende de F1–F3.
+- **F4 — execução de projeto (e1–e8):** grafo, worktrees/branches, dependências implícitas, fila de merge, monitor. Plano próprio, depende de F1–F3.
 
 ---
 
@@ -186,8 +186,8 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
   - Aceite: **Cancelar** interrompe as sessões e para a fila; **Retry** recria a branch do item a partir do tip atual.
 
 - [ ] **US-38 (Must · e4)** — Como usuário, quero que a execução produza uma **branch de integração revisável**, para eu juntar tudo de uma vez.
-  - Aceite: `run/<id>` nasce na base e recebe os itens concluídos com `merge --no-ff`, serializado.
-  - Aceite: a base **nunca** é alterada automaticamente; conflito de merge aborta e falha o item com o relatório.
+  - Aceite: `run/<id>` nasce na base e recebe os itens concluídos pela fila de merge, um por vez.
+  - Aceite: a base **nunca** é alterada automaticamente; o resultado é uma branch única para revisão.
 
 - [ ] **US-39 (Must · e4)** — Como usuário, quero que uma falha **propague só para os dependentes**, para os ramos independentes continuarem.
   - Aceite: dependentes do item falho são `skipped` transitivamente; a run termina `failed` com o resumo.
@@ -195,6 +195,16 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
 
 - [ ] **US-40 (Should · e1)** — Como mantenedor, quero limitar a **concorrência** por projeto, para não estourar o provedor nem o disco.
   - Aceite: `maxParallel` por projeto (padrão 2), respeitado pelo engine e visível na UI.
+
+- [ ] **US-41 (Must · e5)** — Como usuário, quero que cada item concluído entre numa **fila de merge** drenada por **uma única sessão**, para os merges nunca se atropelarem.
+  - Aceite: fila por run, FIFO; um item `merging` por vez via **claim transacional**; a sessão de merge é única e roda no worktree de integração.
+  - Aceite: um dependente só é liberado quando a dependência está `merged` (não apenas executada).
+  - Aceite: novo item na fila **acorda** a sessão de merge; se ela estiver ocupada, o item espera a vez.
+
+- [ ] **US-42 (Must · e5)** — Como usuário, quero que o agente de merge **resolva conflitos e valide** antes de marcar como mergeado, para a integração não quebrar em silêncio.
+  - Aceite: o agente lê o item/plano, mergeia `wi/<item>` em `run/<id>` e resolve conflito no worktree de integração.
+  - Aceite: roda a verificação do projeto (`verify_command`, quando configurada); falha → `git merge --abort`/reset e marca `merge_failed`.
+  - Aceite: um merge que falha para a fila e falha o run; nunca há auto-merge na base.
 
 ## Qualidade
 
@@ -238,13 +248,14 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
 | s8 continuidade + global | 05, 21, 28 |
 | s9 docs + commits | todas (documentação) |
 | s10 stress | 01–28 (regressão) |
-| e1 schema de runs + settings | 33, 40 |
-| e2 git helper (worktree/branch/merge/diff) | 34 |
+| e1 schema de runs + fila + settings | 33, 40, 41 |
+| e2 git helper (worktree/branch/diff/ancestor) | 34 |
 | e3 footprint + dependências implícitas | 35 |
-| e4 engine (grafo, sessões, merges) | 33, 34, 38, 39 |
-| e5 pré-voo + monitor + planejar pendentes | 36, 37 |
-| e6 e2e com repo real | 33–39 |
-| e7 docs + stress | todas |
+| e4 engine (grafo, sessões, enfileirar) | 33, 34, 38, 39, 41 |
+| e5 sessão de merge + tools + verificação | 41, 42 |
+| e6 pré-voo + monitor + planejar pendentes | 36, 37, 41 |
+| e7 e2e com repo real (inclui conflito) | 33–42 |
+| e8 docs + stress | todas |
 
 ## Associação plano ↔ US (depois do s10)
 
