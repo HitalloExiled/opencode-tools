@@ -50,7 +50,7 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
   - Aceite: o overlay (sem sessão) lista por projeto, depois por status; o painel mostra só o projeto resolvido.
 
 - [ ] **US-06 (Could · v1.1)** — Como usuário, quero mover um item para outro projeto, para reclassificar sem recriar.
-  - Fora do v1: mover exige revisar dependências e planos vinculados.
+  - Fora do v1: mover exige revisar dependências e o plano vinculado.
 
 ## Item (necessidade)
 
@@ -89,7 +89,7 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
 
 - [ ] **US-15 (Must · s6/s7)** — Como usuário, quero descartar um item com confirmação, para limpar o backlog sem perder o histórico.
   - Aceite: `dropped` pede confirmação; o item some das listas padrão e continua acessível por filtro.
-  - Aceite: planos vinculados não são apagados.
+  - Aceite: o plano vinculado não é apagado.
 
 ## Planejar
 
@@ -160,7 +160,7 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
   - Aceite: roda em `plans.db` v2 real; `user_version = 3`; reexecutar não duplica nem falha; `ALTER TABLE` guardado por `PRAGMA table_info`.
 
 - [ ] **US-30 (Must · s1/s2/s3)** — Como mantenedor, quero testes de contrato, resolução, dedupe e invariantes, para não regredir.
-  - Aceite: resolução (exato, ancestral, nenhum), `UNIQUE(directory)`, ciclo de deps, dedupe, supersede, um `doing` por plano.
+  - Aceite: resolução (exato, ancestral, nenhum), `UNIQUE(directory)`, ciclo de deps, dedupe, um plano por item, um `doing` por plano.
 
 - [ ] **US-31 (Must · s4)** — Como usuário que não usa work items, quero custo mínimo, para o plugin continuar leve.
   - Aceite: sem itens, nenhum bloco na cauda; só a regra constante no system.

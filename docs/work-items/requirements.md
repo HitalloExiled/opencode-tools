@@ -38,7 +38,7 @@ Projetos duram semanas e atravessam vários repositórios. O plano atual cobre *
 - **RF-13** — A origem (`user`/`agent`) deve ser inferida pelo canal (tool × RPC/comando), nunca declarada pelo agente.
 - **RF-14** — Deve existir captura rápida de um item por comando, sem turno de modelo.
 - **RF-15** — O usuário deve criar (título) e editar (corpo, pai, deps) pelo painel.
-- **RF-16** — Descartar deve pedir confirmação e preservar planos vinculados.
+- **RF-16** — Descartar deve pedir confirmação e preservar o plano vinculado.
 
 ### Planejar
 
