@@ -104,13 +104,15 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
   - Aceite: prompt-semente (i18n PT/EN) com id + título, “o corpo é a necessidade”, “salve com `plans.save({workItemID})`”, “não implemente”.
   - Aceite: o prompt não presume a implementação.
 
-- [ ] **US-18 (Must · s3/s7)** — Como usuário, quero que o plano fique vinculado ao item e que o item liste todos os planos, para ver as tentativas.
-  - Aceite: `plans.save` aceita `workItemID`; `plans.get`/`plans.list` expõem o vínculo.
-  - Aceite: o detalhe do item lista os planos com status e data, mais recente primeiro.
+- [ ] **US-18 (Must · s3/s7)** — Como usuário, quero que o plano fique vinculado ao item e que o item mostre esse plano, para saber o que será executado.
+  - Aceite: `plans.save` aceita `workItemID`; `plans.get`/`plans.list` expõem o vínculo; **um item tem no máximo um plano** (índice único parcial em `plans.work_item_id`).
+  - Aceite: o detalhe do item mostra o plano com status, progresso e data — sem lista de tentativas.
 
-- [ ] **US-19 (Should · s3)** — Como usuário, quero replanejar sem perder o plano anterior, para mudar de abordagem com histórico.
-  - Aceite: um plano novo para o item supersede o ativo anterior; o antigo fica como `superseded`.
-  - Aceite: nunca há dois planos ativos para o mesmo item.
+- [ ] **US-19 (Should · s3)** — Como usuário, quero replanejar **editando o plano existente**, para a estratégia atual ser o único registro — histórico de planos não é relevante.
+  - Aceite: `plans.save` com `id` substitui texto/estrutura do mesmo plano; criar um segundo plano para o item é rejeitado com o id do existente.
+  - Aceite: `Planejar` num item que já tem plano abre a sessão desse plano (ou cria uma nova, se ela não existir) e manda **editar** o plano, não criar outro.
+  - Aceite: editar um plano `done` o reabre como `active`; num item `done`, a UI pede para reabrir o item antes.
+  - Aceite: `superseded` não é produzido por este fluxo.
 
 - [ ] **US-20 (Must · s7)** — Como usuário, quero que **Executar** fique desabilitado sem plano, para o fluxo ser óbvio.
   - Aceite: sem plano ativo, “Planeje primeiro”; com plano ativo, executa esse plano.
@@ -149,7 +151,7 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
 ## Continuidade
 
 - [ ] **US-28 (Should · s8)** — Como usuário, quero abrir uma sessão nova semanas depois e ver o estado do projeto e do item, para retomar sem reler o histórico.
-  - Aceite: a sessão resolve o projeto e mostra os itens `ready`/`doing`/`blocked` + o último plano.
+  - Aceite: a sessão resolve o projeto e mostra os itens `ready`/`doing`/`blocked` + o plano de cada item.
   - Aceite: não injeta corpo de itens (só título/status).
 
 ## Qualidade
@@ -185,7 +187,7 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
 |---|---|
 | s1 schema + store + resolução | 01, 02, 09, 10, 11, 12, 13, 29, 30 |
 | s2 tools + auto-criação | 02, 03, 09, 14, 23, 24, 30 |
-| s3 vínculo com planos + supersede | 18, 19, 30 |
+| s3 vínculo com planos + edição | 18, 19, 30 |
 | s4 contrato do runtime | 09, 22, 25, 26, 31 |
 | s5 e2e F1 | 01–03, 10, 18, 19, 23–26 |
 | s6 RPC + `/work` | 03, 04, 07, 14, 15 |
@@ -200,7 +202,7 @@ Cada US vira um **work item** quando a feature existir (dogfooding), e cada plan
 
 - No `plans.db`: `plans.work_item_id` aponta para o item da US; o plano é a execução, a US é a necessidade.
 - **Até a feature existir**: o título ou o corpo do plano começa com `US-XX`, para a migração conseguir mapear sem adivinhação.
-- **Um plano ativo por US.** Se uma execução cobrir duas USs, são dois itens separados — ou um item pai com dois filhos.
+- **Um plano por US.** Replanejar edita o mesmo plano (sem histórico); se uma execução cobrir duas USs, são dois itens separados — ou um item pai com dois filhos.
 - **Não migrar as 31 de uma vez**: criar itens só para as Must/Should da fase corrente, planejar e executar; o doc continua sendo a fonte das histórias.
 - O plano que constrói a própria feature (`plans.db`, 10 passos) fica **fora** do backlog de USs: ele é a obra, não uma necessidade do produto.
 
