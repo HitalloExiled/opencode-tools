@@ -24,6 +24,7 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
 - **F1 — núcleo sem GUI (s1–s5):** schema, projeto/resolução, tools, contrato do agente, e2e de agente.
 - **F2 — superfícies (s6–s8):** RPC, painel Trabalho, continuidade.
 - **F3 — fechamento (s9–s10):** docs, commits, stress.
+- **F4 — execução de projeto (e1–e7):** grafo, worktrees/branches, dependências implícitas, monitor. Plano próprio, depende de F1–F3.
 
 ---
 
@@ -161,6 +162,40 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
   - Aceite: a sessão resolve o projeto e mostra os itens `ready`/`doing`/`blocked` + o plano de cada item.
   - Aceite: não injeta corpo de itens (só título/status).
 
+## Execução de projeto (F4)
+
+- [ ] **US-33 (Must · e1/e4)** — Como usuário, quero **executar o projeto inteiro** seguindo o grafo, para o trabalho andar sem eu disparar item por item.
+  - Aceite: só itens `ready` com plano; sem ciclo; até `maxParallel` em paralelo; um dependente só começa com as dependências concluídas.
+  - Aceite: a ordem é determinística; a execução é cancelável e não toca a branch base.
+
+- [ ] **US-34 (Must · e2/e4)** — Como usuário, quero que cada item seja desenvolvido numa **branch/worktree dedicada**, para execuções paralelas não pisarem umas nas outras.
+  - Aceite: `git worktree` + branch `wi/<item>` a partir do tip atual da integração; a sessão do executor roda nesse diretório.
+  - Aceite: o worktree é identificável e removível ao fim; nada é escrito na árvore principal.
+
+- [ ] **US-35 (Must · e3)** — Como usuário, quero que itens que alteram **o mesmo código** ganhem automaticamente uma **dependência implícita**, para não rodarem em paralelo e conflitarem.
+  - Aceite: footprint = `touches` declarado pelo plano ∪ diff real da branch; interseção sem caminho no grafo cria uma dep `implicit` com os caminhos no `reason`.
+  - Aceite: direção determinística (rank/created_at); se a direção criar ciclo, o pré-voo falha com os itens envolvidos.
+  - Aceite: plano sem `touches` é tratado como conflitante com tudo e serializa.
+
+- [ ] **US-36 (Should · e5)** — Como usuário, quero **planejar os pendentes em lote**, para não abrir uma sessão por item antes de executar.
+  - Aceite: uma sessão de planner por item `ready` sem plano, sequencial; para no primeiro erro e mantém o que já foi planejado.
+  - Aceite: `backlog` não é planejado nem executado até ser promovido.
+
+- [ ] **US-37 (Should · e5)** — Como usuário, quero um **monitor da execução**, para ver o que está rodando, o que espera e o que falhou.
+  - Aceite: por item `queued | running | merging | done | failed | skipped`, com branch, sessão (link) e duração.
+  - Aceite: **Cancelar** interrompe as sessões e para a fila; **Retry** recria a branch do item a partir do tip atual.
+
+- [ ] **US-38 (Must · e4)** — Como usuário, quero que a execução produza uma **branch de integração revisável**, para eu juntar tudo de uma vez.
+  - Aceite: `run/<id>` nasce na base e recebe os itens concluídos com `merge --no-ff`, serializado.
+  - Aceite: a base **nunca** é alterada automaticamente; conflito de merge aborta e falha o item com o relatório.
+
+- [ ] **US-39 (Must · e4)** — Como usuário, quero que uma falha **propague só para os dependentes**, para os ramos independentes continuarem.
+  - Aceite: dependentes do item falho são `skipped` transitivamente; a run termina `failed` com o resumo.
+  - Aceite: a execução não entra em loop de retry automático.
+
+- [ ] **US-40 (Should · e1)** — Como mantenedor, quero limitar a **concorrência** por projeto, para não estourar o provedor nem o disco.
+  - Aceite: `maxParallel` por projeto (padrão 2), respeitado pelo engine e visível na UI.
+
 ## Qualidade
 
 - [ ] **US-29 (Must · s1)** — Como mantenedor, quero migração v3 idempotente, para atualizar sem perder dados.
@@ -181,6 +216,7 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
 - Sync com GitHub Issues/Jira; importadores.
 - Merge de projetos; dependências entre projetos; permissões automáticas para os outros repos do projeto (leitura continua `external_directory`/ask).
 - Edição de item na timeline (só painel/overlay).
+- Auto-merge na base; retomada automática após restart; execução atravessando projetos; WIP por coluna.
 
 ## Perguntas abertas
 
@@ -202,6 +238,13 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
 | s8 continuidade + global | 05, 21, 28 |
 | s9 docs + commits | todas (documentação) |
 | s10 stress | 01–28 (regressão) |
+| e1 schema de runs + settings | 33, 40 |
+| e2 git helper (worktree/branch/merge/diff) | 34 |
+| e3 footprint + dependências implícitas | 35 |
+| e4 engine (grafo, sessões, merges) | 33, 34, 38, 39 |
+| e5 pré-voo + monitor + planejar pendentes | 36, 37 |
+| e6 e2e com repo real | 33–39 |
+| e7 docs + stress | todas |
 
 ## Associação plano ↔ US (depois do s10)
 

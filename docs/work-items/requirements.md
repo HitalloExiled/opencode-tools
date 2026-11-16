@@ -12,7 +12,9 @@ Projetos duram semanas e atravessam vários repositórios. O plano atual cobre *
 
 **Dentro:** projeto do usuário (N workspaces), work item (necessidade), vínculo plano↔item, planejar/executar, ferramentas e contexto do agente, painel.
 
-**Fora (v1):** swimlanes, WIP limits, drag de colunas, assignees, labels, sprints, milestones, comentários/feed, sync com GitHub/Jira, merge de projetos, dependências entre projetos. Ver `user-stories.md` → “Fora de escopo”.
+**Fases:** F1–F3 (work items) e **F4 (execução de projeto: grafo, branches, paralelismo)** — plano próprio, depende das fases anteriores.
+
+**Fora (v1):** swimlanes, WIP limits, drag de colunas, assignees, labels, sprints, milestones, comentários/feed, sync com GitHub/Jira, merge de projetos, dependências entre projetos, auto-merge na base. Ver `user-stories.md` → “Fora de escopo”.
 
 ---
 
@@ -67,6 +69,16 @@ Projetos duram semanas e atravessam vários repositórios. O plano atual cobre *
 
 ---
 
+### Execução de projeto (F4)
+
+- **RF-30** — O plugin deve executar o projeto inteiro pelo **grafo de dependências**: paralelizar itens sem dependência pendente (até o limite configurado) e encadear os dependentes.
+- **RF-31** — Cada item deve rodar em **worktree + branch dedicada** (`wi/<item>`), criada a partir do tip atual da branch de integração.
+- **RF-32** — O plano deve declarar o **footprint** (`touches`: arquivos/globs) e o sistema deve **criar dependências implícitas** quando dois itens se sobrepõem, com direção determinística (rank/created_at) e detecção de ciclo; footprint desconhecido serializa.
+- **RF-33** — A execução deve acumular os itens concluídos numa branch de integração `run/<id>` (merge serializado, `--no-ff`); a base **nunca** é alterada automaticamente.
+- **RF-34** — Deve existir **Planejar pendentes**: uma sessão de planner por item sem plano, sequencial, antes da execução.
+- **RF-35** — Deve ser possível **cancelar** uma execução (parar lançamentos, interromper sessões) e **retry** de um item; falha propaga para os dependentes e não bloqueia ramos independentes; restart marca a run como interrompida sem retomada automática.
+- **RF-36** — A UI deve mostrar o **pré-voo** (bloqueios), o **monitor** por item (estado, branch, sessão, duração) e um badge da run no card.
+
 ## Requisitos não funcionais
 
 - **RNF-01 (cache)** — Regras constantes no `system`; dados dinâmicos (lista de itens) na cauda. Nunca reescrever o `system` por request.
@@ -79,6 +91,10 @@ Projetos duram semanas e atravessam vários repositórios. O plano atual cobre *
 - **RNF-08 (testabilidade)** — Store, tools, contrato, resolução, dedupe e invariantes cobertos por teste; UI com checklist manual.
 - **RNF-09 (desempenho)** — Listar o backlog é O(itens do projeto), com índice `(project_id, status, rank)`.
 - **RNF-10 (observabilidade)** — Erros com prefixo `[plans]`; stress sem `ERROR`/`WARN` do plugin.
+- **RNF-11 (concorrência)** — Limite de sessões simultâneas (`maxParallel`, padrão 2) por projeto; merges serializados.
+- **RNF-12 (segurança git)** — A base nunca é alterada pelo plugin; conflito aborta o merge e falha com relatório, sem auto-resolução.
+- **RNF-13 (determinismo)** — Mesmo grafo + mesmo footprint produz a mesma ordem; dependências implícitas são recalculadas a cada plano salvo.
+- **RNF-14 (resiliência)** — Restart não retoma sozinho; worktrees órfãos são listáveis e removíveis.
 
 ## Restrições
 
@@ -121,6 +137,8 @@ Projetos duram semanas e atravessam vários repositórios. O plano atual cobre *
 | RF-29 | US-32 | s7 |
 | RF-28 | todas | s9/s10 |
 | RNF-01…10 | US-30, US-31 | s1–s4, s9 |
+| RF-30…36 (F4) | US-33…40 | e1–e7 (plano de execução) |
+| RNF-11…14 (F4) | US-33…40 | e1–e7 (plano de execução) |
 
 ## Decisões abertas (mesmas do doc de USs)
 

@@ -15,11 +15,16 @@ necessidade ──► requisitos ──► user stories ──► plano (plans.d
 
 O plano de execução vive no `plans.db` (10 passos) — este diretório não duplica o plano, só a intenção e o aceite.
 
+## Fases
+
+- **F1–F3 (work items):** projeto, necessidade, planejar/executar um item, painel e quadro. Plano no `plans.db` (10 passos).
+- **F4 (execução de projeto):** grafo, worktrees/branches, paralelismo, dependências implícitas, monitor. Plano próprio no `plans.db` (7 passos), depende de F1–F3.
+
 ## Estado
 
 - Requisitos: rascunho para revisão.
 - Histórias: rascunho para revisão.
-- Implementação: não iniciada.
+- Implementação: não iniciada (F1–F3 primeiro).
 
 ## Decisões abertas
 
