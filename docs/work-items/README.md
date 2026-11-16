@@ -22,9 +22,29 @@ O plano de execução vive no `plans.db` (10 passos) — este diretório não du
 
 ## Estado
 
-- Requisitos: rascunho para revisão.
-- Histórias: rascunho para revisão.
-- Implementação: não iniciada (F1–F3 primeiro).
+- Requisitos: implementados (F1–F4).
+- Histórias: implementadas; ver o mapa US → código abaixo.
+- Implementação: F1–F3 (work items, superfícies, quadro) e **F4** (execução de
+  projeto) no `opencode-plans`; o plano de cada entrega está no `plans.db`.
+
+### F4 — rastreabilidade
+
+| Requisito | Onde |
+|---|---|
+| RF-30 grafo/paralelismo | `src/run-scheduler.ts`, `src/run-engine.ts` (`pump`) |
+| RF-31 worktree/branch por item | `src/git.ts`, `src/run-paths.ts`, `run-engine.executeItem` |
+| RF-32 footprint/dependência implícita | `src/work-footprint.ts`, `store.recomputeImplicitDeps`, `plans.save(touches)` |
+| RF-33 integração `run/<id>` + fila | `src/run-engine.ts`, `src/merge-session.ts`, tabelas `runs/run_items/merge_queue` |
+| RF-34 planejar pendentes | modo quadro/superfície (US-36), sessões de planner por item |
+| RF-35 cancelar/retry/restart | `cancelProjectRun`, `retryRunItem`, `recoverRuns` |
+| RF-36 UI de pré-voo/monitor/fila | `src/gui/work.tsx` (run bar, painéis) + RPC `run*` |
+| RF-37 merge único com claim | `store.claimNextMerge`, `merge.next` |
+| RF-38 merge verificado | `merge.done` (`merge-base --is-ancestor`), `verify_command` |
+
+Testes: `test/run-scheduler.test.ts`, `test/work-footprint.test.ts`,
+`test/run-footprint.test.ts`, `test/runs.test.ts`,
+`test/run-preflight.test.ts`, `test/merge-tools.test.ts`,
+`test/run-e2e.test.ts`.
 
 ## Decisões abertas
 
