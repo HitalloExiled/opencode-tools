@@ -54,6 +54,7 @@ Atores: **usuário**, **planner** (agente), **executor** (agente), **mantenedor*
   - Aceite: arrastar um card entre colunas muda status **e** posição (rank no índice de destino); um menu **“Mover para…”** faz o mesmo sem mouse (teclado/acessibilidade).
   - Aceite: no modo quadro o overlay alarga (até ~1280px); busca, pai e origem continuam valendo.
   - Aceite: o quadro é **por projeto** (seletor no overlay); sem swimlanes de todos os projetos.
+  - Aceite: cada coluna mostra no máximo 20 cards (por rank) e oferece “ver todos”, que abre a lista filtrada por aquele status.
 
 - [ ] **US-06 (Could · v1.1)** — Como usuário, quero mover um item para outro projeto, para reclassificar sem recriar.
   - Fora do v1: mover exige revisar dependências e o plano vinculado.
