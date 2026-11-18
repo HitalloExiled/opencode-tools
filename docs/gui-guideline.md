@@ -305,6 +305,31 @@ app e o composer é desenhado acima dele (z-index e degradê cortariam o modal).
 - Sem seletor genérico (`.form`, `.empty`, `.actions`, `.tag`): `<style>` é
   global e vaza para o app.
 - Sem `!important`; sem inline, exceto geometria dinâmica.
+- **O CSS é autorado em `.scss`, importado com o sufixo `?inline` do Vite.**
+  Cada arquivo de origem (ex. `view.tsx`) tem um `.scss` irmão com o mesmo
+  nome (`view.scss`); o Sass compila para string em tempo de build — sem
+  chunk `.css` separado, sem mudar o padrão `<style>{CSS}</style>` em
+  runtime:
+
+  ```ts
+  import viewCss from "./view.scss?inline";
+
+  const CSS = viewCss;
+  ```
+
+  - Aninhamento Sass (`&:hover`, `&.is-active`) é permitido e preferível a
+    repetir o seletor base.
+  - Quando múltiplos blocos se concatenam (`SHARED_CSS + WORK_CSS`,
+    `DIALOG_SURFACE_CSS + CSS`) ou o painel renderiza duas tags `<style>`
+    separadas, a ordem de concatenação/renderização é parte do contrato de
+    cascata — nunca reordene ao migrar ou editar.
+  - Cada plugin declara `sass` como devDependency e um
+    `src/vite-env.d.ts` com `declare module "*.scss?inline"` (TypeScript
+    não resolve o sufixo `?inline` sozinho); o `tsconfig.gui.json` inclui
+    `src/**/*.d.ts`.
+  - `scripts/gui-lint.sh` varre `.scss` também, mas só a regra de hex
+    cru/tokens inválidos se aplica — `.scss` não carrega strings de i18n nem
+    imports JS.
 
 ## 19. Código compartilhado
 
@@ -353,6 +378,8 @@ commit.
 - [ ] Vazio/erro/loading com os componentes do shared.
 - [ ] Toda string em `i18n` (PT + EN).
 - [ ] Classes prefixadas; `SHARED_CSS` renderizado uma vez.
+- [ ] CSS em `.scss` irmão importado com `?inline`; ordem de concatenação/
+      `<style>` preservada quando houver mais de um bloco.
 - [ ] `Panel` com `mobile`, `closed`, `list(open)`, render keyed, sem `fallback`.
 - [ ] `npm run typecheck:gui` + `npm run gui:build` limpos; reload sem erro no log.
 - [ ] `bun run lint:gui` limpo (hex cru, token inexistente, PT fora do i18n, import relativo do shared).

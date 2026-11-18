@@ -5,8 +5,12 @@
 # Rejects, under plugins/*/src/gui and shared/src/gui:
 #   - raw hex colors (var() fallbacks and custom-property series are allowed)
 #   - theme tokens that do not exist
-#   - Portuguese literals outside i18n.ts / setup.tsx
-#   - the old scoped package name and relative imports into shared/
+#   - Portuguese literals outside i18n.ts / setup.tsx (.ts/.tsx only)
+#   - the old scoped package name and relative imports into shared/ (.ts/.tsx only)
+#
+# .scss files (CSS extracted from the old `const CSS = \`...\`` strings) are
+# scanned too, but only for the hex/token rules: they carry no i18n strings
+# or JS imports, so the PT-literal and shared-import checks do not apply.
 #
 # Usage: scripts/gui-lint.sh   (or `bun run lint:gui` from the parent)
 #
@@ -16,13 +20,14 @@ ROOT="$(cd -P "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 found="$(
   find "$ROOT/plugins" "$ROOT/shared/src" \
-    -path '*/src/gui/*' \( -name '*.ts' -o -name '*.tsx' \) \
+    -path '*/src/gui/*' \( -name '*.ts' -o -name '*.tsx' -o -name '*.scss' \) \
     -not -path '*/node_modules/*' -not -path '*/dist/*' -print0 \
   | sort -z \
   | xargs -0 -r awk '
     {
       n = split(FILENAME, parts, "/")
       base = parts[n]
+      is_scss = (base ~ /\.scss$/)
       trimmed = $0
       sub(/^[ \t]+/, "", trimmed)
       if (trimmed ~ /^\/\// || trimmed ~ /^\*/ || trimmed ~ /^\/\*/) next
@@ -39,6 +44,7 @@ found="$(
         failed = 1
         next
       }
+      if (is_scss) next
       if (base != "i18n.ts" && base != "setup.tsx" \
           && ($0 ~ /[ãõçáéíóúâêôà]/ \
               || $0 ~ /(^|[^a-zA-Z])(nada|Limpar|Carregar|Nenhum|Nenhuma|Abrir|Fechar|Salvar|Remover|Página|erro ao|Ir para)([^a-zA-Z]|$)/)) {
